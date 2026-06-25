@@ -167,8 +167,7 @@ async function loadAll() {
     ['despesas_variaveis','despesas'],['compras_estoque','compras'],['metas_mensais','metas']];
   const results = await Promise.all(tables.map(([tbl])=>cloudLoad(tbl)));
   results.forEach((d,i)=>{ if(d){ S[tables[i][1]]=d; lsSave(tables[i][1],d); } });
-  const cfgR=await sb.from('config_clinica').select('*').eq('user_id',S.user.id).maybeSingle().catch(()=>({data:null}));
-  if(cfgR.data){ S.cfg=cfgR.data; lsSave('cfg',cfgR.data); }
+  try{ const cfgR=await sb.from('config_clinica').select('*').eq('user_id',S.user.id).maybeSingle(); if(cfgR.data){ S.cfg=cfgR.data; lsSave('cfg',cfgR.data); } }catch(e){}
   setSyncStatus('✓ Sincronizado','text-green-500');
   setTimeout(()=>setSyncStatus(''),3000);
 }
