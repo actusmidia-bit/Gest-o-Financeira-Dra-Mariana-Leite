@@ -1,1272 +1,1192 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dra Mariana Leite | Gestão Financeira</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        fundo: { principal: '#F5F4EF', suave: '#FBFAF7' },
-                        bege: { pedra: '#E2D5C3' },
-                        verde: { escuro: '#5F674C', principal: '#899173', oliva: '#747D5D', claro: '#A6AD93' },
-                        rose: '#B26768',
-                        texto: '#4B423A'
-                    },
-                    fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-    <style>
-        @media print {
-            #tela-login, aside, header, #filtro-mes, .no-print { display: none !important; }
-            body { background: white !important; }
-            #app { display: block !important; }
-            main { overflow: visible !important; height: auto !important; }
-            .aba-page { display: none !important; }
-            #page-dashboard { display: block !important; padding: 0 !important; }
-            #print-dre { display: block !important; }
-            #dre-content, #kpi-row { break-inside: avoid; }
-        }
-        #print-dre { display: none; }
-        .has-tooltip:hover .tooltip { visibility: visible; opacity: 1; }
-        .tooltip { visibility: hidden; opacity: 0; transition: opacity 0.2s; }
-        .custom-checkbox { accent-color: #899173; }
-        .badge-alert { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
-        .modal-overlay { backdrop-filter: blur(3px); }
-        input:focus, select:focus { outline: none; box-shadow: 0 0 0 2px #899173; border-color: #899173; }
-        .tab-active { background: rgba(166,173,147,0.2) !important; color: #5F674C !important; border-left-color: #899173 !important; font-weight: 600; }
-        .tab-active i { color: #5F674C !important; }
-        ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #F5F4EF; } ::-webkit-scrollbar-thumb { background: #E2D5C3; border-radius: 3px; }
-        #sync-indicator { transition: opacity 0.3s; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão Financeira — Dra Mariana Leite</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+tailwind.config = {
+  theme: { extend: { colors: {
+    rose: { 50:'#fff1f2',100:'#ffe4e6',200:'#fecdd3',300:'#fda4af',400:'#fb7185',500:'#f43f5e',600:'#e11d48',700:'#be123c',800:'#9f1239',900:'#881337' }
+  }}}
+}
+</script>
+<style>
+:root{--rose:#e11d48;--rose-light:#fecdd3;--rose-dark:#9f1239;}
+*{box-sizing:border-box;}
+body{font-family:'Segoe UI',sans-serif;background:#fdf2f4;}
+.card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(225,29,72,.08);padding:1.25rem;}
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1.1rem;border-radius:10px;font-weight:600;font-size:.875rem;cursor:pointer;transition:all .15s;border:none;}
+.btn-primary{background:var(--rose);color:#fff;} .btn-primary:hover{background:var(--rose-dark);}
+.btn-secondary{background:#f3f4f6;color:#374151;} .btn-secondary:hover{background:#e5e7eb;}
+.btn-ghost{background:transparent;color:var(--rose);border:1.5px solid var(--rose);} .btn-ghost:hover{background:#fff1f2;}
+.btn-sm{padding:.3rem .75rem;font-size:.8rem;}
+.btn-danger{background:#fee2e2;color:#dc2626;} .btn-danger:hover{background:#fecaca;}
+.inp{width:100%;padding:.5rem .75rem;border:1.5px solid #e5e7eb;border-radius:10px;font-size:.9rem;outline:none;transition:border .15s;}
+.inp:focus{border-color:var(--rose);}
+.inp-sm{padding:.35rem .6rem;font-size:.82rem;}
+.tag{display:inline-block;padding:.15rem .6rem;border-radius:6px;font-size:.75rem;font-weight:600;}
+.tag-green{background:#d1fae5;color:#065f46;} .tag-red{background:#fee2e2;color:#991b1b;}
+.tag-yellow{background:#fef3c7;color:#92400e;} .tag-blue{background:#dbeafe;color:#1e40af;}
+.nav-item{display:flex;align-items:center;gap:.5rem;padding:.55rem .9rem;border-radius:10px;cursor:pointer;font-size:.875rem;font-weight:500;color:#6b7280;transition:all .15s;white-space:nowrap;}
+.nav-item:hover{background:#fff1f2;color:var(--rose);}
+.nav-item.active{background:#fff1f2;color:var(--rose);font-weight:700;}
+.tooltip{position:relative;display:inline-block;cursor:help;}
+.tooltip .tip{visibility:hidden;background:#1f2937;color:#fff;font-size:.75rem;border-radius:8px;padding:.4rem .7rem;position:absolute;z-index:50;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:pre-line;min-width:200px;max-width:280px;line-height:1.4;pointer-events:none;opacity:0;transition:opacity .15s;}
+.tooltip:hover .tip{visibility:visible;opacity:1;}
+.progress-bar{height:8px;background:#f3f4f6;border-radius:4px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:4px;background:var(--rose);transition:width .4s;}
+.section-title{font-size:1.1rem;font-weight:700;color:#1f2937;margin-bottom:1rem;}
+.metric-card{background:#fff;border-radius:14px;padding:1rem 1.2rem;box-shadow:0 2px 8px rgba(225,29,72,.07);border-left:4px solid var(--rose);}
+.table-header{background:#fdf2f4;font-size:.78rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;}
+@media print{
+  nav,#sidebar,.btn,.no-print{display:none!important;}
+  body{background:#fff;}
+  .card{box-shadow:none;border:1px solid #e5e7eb;}
+}
+</style>
 </head>
-<body class="bg-fundo-principal text-texto font-sans">
+<body class="min-h-screen">
 
-<!-- ========== TELA DE LOGIN ========== -->
-<div id="tela-login" class="fixed inset-0 z-50 bg-fundo-principal flex items-center justify-center p-4">
-    <div class="w-full max-w-sm">
-        <div class="text-center mb-8">
-            <div class="w-16 h-16 rounded-full bg-verde-principal flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4 shadow-lg">ML</div>
-            <h1 class="text-2xl font-bold text-verde-escuro">Dra Mariana Leite</h1>
-            <p class="text-sm text-verde-oliva mt-1">Inteligência Financeira · Clínica</p>
-        </div>
-
-        <div class="bg-fundo-suave rounded-2xl border border-bege-pedra shadow-lg p-6 space-y-4">
-            <div id="login-erro" class="hidden bg-rose/10 border border-rose/30 text-rose text-sm px-4 py-2.5 rounded-lg">
-                <i class="fas fa-exclamation-circle mr-2"></i><span id="login-erro-msg"></span>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium mb-1.5 text-verde-escuro">E-mail</label>
-                <input type="email" id="login-email" placeholder="dra@clinica.com.br"
-                    class="w-full px-4 py-2.5 border border-bege-pedra rounded-xl bg-white text-sm"
-                    onkeydown="if(event.key==='Enter') auth.entrar()">
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-1.5 text-verde-escuro">Senha</label>
-                <div class="relative">
-                    <input type="password" id="login-senha" placeholder="••••••••"
-                        class="w-full px-4 py-2.5 border border-bege-pedra rounded-xl bg-white text-sm pr-10"
-                        onkeydown="if(event.key==='Enter') auth.entrar()">
-                    <button onclick="auth.toggleSenha()" class="absolute right-3 top-1/2 -translate-y-1/2 text-texto/40 hover:text-texto/70">
-                        <i id="icone-senha" class="fas fa-eye text-sm"></i>
-                    </button>
-                </div>
-            </div>
-
-            <button onclick="auth.entrar()" id="btn-login"
-                class="w-full bg-verde-principal text-white py-3 rounded-xl font-semibold hover:bg-verde-escuro transition shadow-sm mt-2">
-                <i class="fas fa-sign-in-alt mr-2"></i>Entrar
-            </button>
-
-            <div id="modo-criar" class="hidden space-y-4 border-t border-bege-pedra pt-4">
-                <p class="text-xs text-texto/60 text-center">Primeira vez? Crie sua conta com a senha que você escolheu.</p>
-                <button onclick="auth.criarConta()" id="btn-criar"
-                    class="w-full bg-verde-escuro/10 text-verde-escuro py-2.5 rounded-xl font-semibold hover:bg-verde-escuro/20 transition text-sm border border-verde-claro">
-                    <i class="fas fa-user-plus mr-2"></i>Criar Conta
-                </button>
-            </div>
-
-            <button onclick="auth.toggleModoCriar()" class="w-full text-xs text-verde-oliva hover:text-verde-principal transition text-center pt-1">
-                <span id="texto-toggle-modo">Primeiro acesso? Criar conta</span>
-            </button>
-        </div>
-        <p class="text-center text-xs text-texto/30 mt-6">Dados protegidos · Supabase Cloud</p>
+<!-- LOGIN -->
+<div id="loginPage" class="hidden min-h-screen flex items-center justify-center p-4">
+  <div class="card w-full max-w-sm">
+    <div class="text-center mb-6">
+      <div class="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-3">
+        <span class="text-3xl">🌸</span>
+      </div>
+      <h1 class="text-xl font-bold text-gray-800">Gestão Financeira</h1>
+      <p class="text-sm text-gray-500">Dra Mariana Leite</p>
     </div>
+    <div class="space-y-3">
+      <input id="loginEmail" type="email" class="inp" placeholder="E-mail">
+      <input id="loginPass" type="password" class="inp" placeholder="Senha">
+      <button onclick="auth.login()" class="btn btn-primary w-full justify-center">Entrar</button>
+      <p id="loginErr" class="text-red-500 text-sm text-center hidden"></p>
+    </div>
+  </div>
 </div>
 
-<!-- ========== APP PRINCIPAL ========== -->
-<div id="app" class="hidden flex h-screen overflow-hidden">
-
-    <!-- SIDEBAR -->
-    <aside class="w-64 bg-fundo-suave border-r border-bege-pedra flex flex-col z-20 flex-shrink-0">
-        <div class="h-20 flex items-center px-6 border-b border-bege-pedra">
-            <div class="w-10 h-10 rounded-full bg-verde-principal flex items-center justify-center text-white font-bold text-xl mr-3 flex-shrink-0">ML</div>
-            <div class="min-w-0">
-                <h1 class="font-bold text-sm text-verde-escuro uppercase leading-tight truncate">Dra Mariana Leite</h1>
-                <p class="text-xs text-verde-oliva">Gestão Estratégica</p>
-            </div>
-        </div>
-        <nav class="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
-            <button onclick="app.goTo('dashboard')" id="nav-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors border-l-4 border-transparent text-texto hover:bg-bege-pedra/30">
-                <i class="fas fa-chart-pie w-5 text-verde-oliva"></i><span>Dashboard & DRE</span>
-            </button>
-            <button onclick="app.goTo('procedimentos')" id="nav-procedimentos" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors border-l-4 border-transparent text-texto hover:bg-bege-pedra/30">
-                <i class="fas fa-calculator w-5 text-verde-oliva"></i><span>Procedimentos</span>
-            </button>
-            <button onclick="app.goTo('estoque')" id="nav-estoque" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors border-l-4 border-transparent text-texto hover:bg-bege-pedra/30">
-                <i class="fas fa-box-open w-5 text-verde-oliva"></i><span>Estoque</span>
-                <span id="badge-estoque" class="hidden ml-auto bg-rose text-white text-xs rounded-full w-5 h-5 flex items-center justify-center badge-alert font-bold"></span>
-            </button>
-            <button onclick="app.goTo('registros')" id="nav-registros" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors border-l-4 border-transparent text-texto hover:bg-bege-pedra/30">
-                <i class="fas fa-clipboard-list w-5 text-verde-oliva"></i><span>Atendimentos</span>
-            </button>
-            <button onclick="app.goTo('configuracoes')" id="nav-configuracoes" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors border-l-4 border-transparent text-texto hover:bg-bege-pedra/30">
-                <i class="fas fa-sliders-h w-5 text-verde-oliva"></i><span>Configurações</span>
-            </button>
-        </nav>
-        <div class="p-4 border-t border-bege-pedra space-y-2">
-            <div id="sync-indicator" class="text-xs flex items-center gap-2 text-verde-oliva">
-                <i id="sync-icon" class="fas fa-cloud-upload-alt"></i>
-                <span id="sync-msg">Sincronizado</span>
-            </div>
-            <button onclick="auth.sair()" class="w-full text-xs text-texto/40 hover:text-rose transition flex items-center gap-2 px-1">
-                <i class="fas fa-sign-out-alt"></i> Sair
-            </button>
-        </div>
-    </aside>
-
-    <!-- MAIN -->
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
-        <header class="h-20 bg-fundo-suave border-b border-bege-pedra flex items-center justify-between px-8 shadow-sm flex-shrink-0">
-            <h2 class="text-xl font-semibold text-verde-escuro" id="header-title">Dashboard & DRE</h2>
-            <span id="badge-custo-minuto" class="text-sm font-bold bg-verde-principal text-white px-4 py-2 rounded-full shadow-sm has-tooltip relative cursor-help">
-                Custo/min: R$ 0,00
-                <span class="tooltip absolute bg-verde-escuro text-white text-xs rounded p-2 z-50 w-56" style="bottom:130%;right:0">Custo da clínica por minuto baseado nas despesas fixas mensais.</span>
-            </span>
-        </header>
-
-        <!-- DASHBOARD -->
-        <section id="page-dashboard" class="p-8 aba-page">
-            <div class="max-w-6xl mx-auto space-y-6">
-                <div class="flex items-center gap-4">
-                    <label class="text-sm font-medium text-verde-escuro">Período:</label>
-                    <input type="month" id="filtro-mes" class="px-3 py-1.5 border border-bege-pedra rounded-lg bg-white text-sm" onchange="app.renderDashboard()">
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-fundo-suave rounded-xl border border-bege-pedra p-5 shadow-sm">
-                        <p class="text-xs text-verde-oliva uppercase tracking-wide mb-1">Faturamento</p>
-                        <p class="text-2xl font-bold text-verde-escuro" id="kpi-faturamento">R$ 0,00</p>
-                        <p class="text-xs text-texto/50 mt-1" id="kpi-atendimentos">0 atendimentos</p>
-                    </div>
-                    <div class="bg-fundo-suave rounded-xl border border-bege-pedra p-5 shadow-sm">
-                        <p class="text-xs text-verde-oliva uppercase tracking-wide mb-1">Custo Variável</p>
-                        <p class="text-2xl font-bold text-rose" id="kpi-custo-variavel">R$ 0,00</p>
-                        <p class="text-xs text-texto/50 mt-1">Insumos + cabine</p>
-                    </div>
-                    <div class="bg-fundo-suave rounded-xl border border-bege-pedra p-5 shadow-sm">
-                        <p class="text-xs text-verde-oliva uppercase tracking-wide mb-1">Custo Fixo</p>
-                        <p class="text-2xl font-bold text-rose" id="kpi-custo-fixo">R$ 0,00</p>
-                        <p class="text-xs text-texto/50 mt-1">Despesas mensais</p>
-                    </div>
-                    <div class="bg-verde-escuro rounded-xl p-5 shadow-sm">
-                        <p class="text-xs text-verde-claro uppercase tracking-wide mb-1">Lucro Operacional</p>
-                        <p class="text-2xl font-bold text-white" id="kpi-lucro">R$ 0,00</p>
-                        <p class="text-xs text-verde-claro/70 mt-1" id="kpi-margem">Margem: 0%</p>
-                    </div>
-                </div>
-                <!-- Gráfico evolução -->
-                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-6 no-print">
-                    <h3 class="font-semibold text-verde-escuro mb-4">Evolução dos Últimos 6 Meses</h3>
-                    <canvas id="grafico-evolucao" height="100"></canvas>
-                </div>
-
-                <!-- DRE -->
-                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-bege-pedra bg-bege-pedra/20 flex justify-between items-center">
-                        <h3 class="font-semibold text-verde-escuro">Demonstrativo de Resultado — DRE</h3>
-                        <button onclick="app.imprimirDRE()" class="no-print text-sm bg-verde-principal text-white px-4 py-1.5 rounded-lg hover:bg-verde-escuro transition">
-                            <i class="fas fa-file-pdf mr-2"></i>Exportar PDF
-                        </button>
-                    </div>
-                    <div class="p-6" id="dre-content">
-                        <p class="text-sm text-texto/40 text-center py-6">Registre atendimentos para visualizar o DRE.</p>
-                    </div>
-                </div>
-
-                <!-- Análise de preços -->
-                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm overflow-hidden no-print">
-                    <div class="px-6 py-4 border-b border-bege-pedra bg-bege-pedra/20">
-                        <h3 class="font-semibold text-verde-escuro">Análise de Preços — Cobrado vs. Sugerido</h3>
-                    </div>
-                    <div id="analise-precos" class="p-4">
-                        <p class="text-sm text-texto/40 text-center py-4">Sem dados suficientes.</p>
-                    </div>
-                </div>
-                <!-- Últimos -->
-                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-bege-pedra bg-bege-pedra/20 flex justify-between items-center">
-                        <h3 class="font-semibold text-verde-escuro">Últimos Atendimentos</h3>
-                        <button onclick="app.goTo('registros')" class="text-sm text-verde-principal hover:underline">Ver todos →</button>
-                    </div>
-                    <div id="dashboard-registros"><p class="text-sm text-texto/40 text-center py-8">Nenhum atendimento registrado.</p></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- PROCEDIMENTOS -->
-        <section id="page-procedimentos" class="p-8 aba-page hidden">
-            <div class="max-w-5xl mx-auto space-y-5">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-verde-escuro">Procedimentos Cadastrados</h3>
-                    <button onclick="app.abrirModalProcedimento()" class="bg-verde-principal text-white px-5 py-2 rounded-lg font-medium shadow-sm hover:bg-verde-escuro transition text-sm">
-                        <i class="fas fa-plus mr-2"></i>Novo Procedimento
-                    </button>
-                </div>
-                <div id="lista-procedimentos">
-                    <p class="text-sm text-texto/40 text-center py-10 bg-fundo-suave rounded-xl border border-bege-pedra">Nenhum procedimento cadastrado.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- ESTOQUE -->
-        <section id="page-estoque" class="p-8 aba-page hidden">
-            <div class="max-w-5xl mx-auto space-y-5">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-verde-escuro">Controle de Estoque</h3>
-                    <div class="flex gap-3">
-                        <button onclick="app.alertarWhatsApp()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-green-700 transition text-sm">
-                            <i class="fab fa-whatsapp mr-2"></i>Alertar Estoque Baixo
-                        </button>
-                        <button onclick="app.abrirModalInsumo()" class="bg-verde-principal text-white px-5 py-2 rounded-lg font-medium shadow-sm hover:bg-verde-escuro transition text-sm">
-                            <i class="fas fa-plus mr-2"></i>Novo Insumo
-                        </button>
-                    </div>
-                </div>
-                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm overflow-hidden">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="bg-bege-pedra/30 text-verde-escuro text-xs uppercase tracking-wide">
-                                <th class="px-4 py-3">Produto</th>
-                                <th class="px-4 py-3">Categoria</th>
-                                <th class="px-4 py-3">Unidade</th>
-                                <th class="px-4 py-3 text-right">Custo Unit.</th>
-                                <th class="px-4 py-3 text-center">Estoque</th>
-                                <th class="px-4 py-3 text-center">Status</th>
-                                <th class="px-4 py-3 text-right">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabela-estoque">
-                            <tr><td colspan="7" class="text-center text-sm text-texto/40 py-8">Carregando...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- REGISTROS -->
-        <section id="page-registros" class="p-8 aba-page hidden">
-            <div class="max-w-5xl mx-auto space-y-6">
-                <!-- Form -->
-                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-6">
-                    <h3 class="font-semibold text-verde-escuro mb-4 pb-3 border-b border-bege-pedra">Registrar Atendimento</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium mb-1">Data</label>
-                            <input type="date" id="reg-data" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-                        <div><label class="block text-sm font-medium mb-1">Procedimento</label>
-                            <select id="reg-procedimento" onchange="app.preencherRegistro()" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm">
-                                <option value="">Selecione...</option>
-                            </select></div>
-                        <div><label class="block text-sm font-medium mb-1">Preço Cobrado (R$)</label>
-                            <input type="number" id="reg-preco" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-                        <div><label class="block text-sm font-medium mb-1">Forma de Pagamento</label>
-                            <select id="reg-pagamento" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm">
-                                <option>Dinheiro</option><option>Pix</option><option>Débito</option>
-                                <option>Crédito à Vista</option><option>Crédito Parcelado</option>
-                            </select></div>
-                    </div>
-                    <div id="reg-resumo" class="hidden mt-4 p-4 bg-fundo-principal rounded-lg border border-bege-pedra text-sm">
-                        <p class="font-semibold text-verde-escuro mb-2">Resumo de Custos do Procedimento</p>
-                        <div class="flex justify-between text-texto/70 mb-1"><span>Insumos:</span><span id="reg-custo-insumos">R$ 0,00</span></div>
-                        <div class="flex justify-between text-texto/70 mb-1"><span>Tempo de Cabine:</span><span id="reg-custo-tempo">R$ 0,00</span></div>
-                        <div class="flex justify-between font-semibold text-verde-escuro border-t border-bege-pedra pt-2 mt-1"><span>Custo Direto:</span><span id="reg-custo-total">R$ 0,00</span></div>
-                        <div id="reg-alerta-estoque" class="hidden mt-2 p-2 bg-rose/10 text-rose text-xs rounded border border-rose/20">
-                            <i class="fas fa-exclamation-triangle mr-1"></i>Estoque insuficiente para um ou mais insumos.
-                        </div>
-                    </div>
-                    <div class="flex justify-end mt-5">
-                        <button onclick="app.registrarAtendimento()" class="bg-verde-principal text-white px-8 py-2.5 rounded-lg font-semibold shadow-md hover:bg-verde-escuro transition text-sm">
-                            <i class="fas fa-check mr-2"></i>Registrar e Dar Baixa no Estoque
-                        </button>
-                    </div>
-                </div>
-                <!-- Histórico -->
-                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-bege-pedra bg-bege-pedra/20 flex justify-between items-center">
-                        <h3 class="font-semibold text-verde-escuro">Histórico</h3>
-                        <input type="month" id="filtro-mes-reg" class="px-3 py-1 border border-bege-pedra rounded-lg bg-white text-xs" onchange="app.renderHistorico()">
-                    </div>
-                    <div id="historico-registros"><p class="text-sm text-texto/40 text-center py-8">Nenhum atendimento.</p></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- CONFIGURAÇÕES -->
-        <section id="page-configuracoes" class="p-8 aba-page hidden">
-            <div class="max-w-3xl mx-auto space-y-6">
-                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-6">
-                    <div class="flex justify-between items-center mb-4 border-b border-bege-pedra pb-3">
-                        <h3 class="font-semibold text-verde-escuro">Custos Fixos Mensais</h3>
-                        <button onclick="app.addCustoFixo()" class="text-sm text-verde-principal hover:underline"><i class="fas fa-plus mr-1"></i>Adicionar</button>
-                    </div>
-                    <div id="lista-custos-fixos" class="space-y-2"></div>
-                    <div class="flex justify-between items-center mt-4 pt-4 border-t border-bege-pedra">
-                        <span class="font-bold text-verde-escuro">Total Mensal:</span>
-                        <span class="font-bold text-xl text-verde-escuro" id="total-fixo">R$ 0,00</span>
-                    </div>
-                </div>
-                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-6">
-                    <h3 class="font-semibold text-verde-escuro mb-4 border-b border-bege-pedra pb-3">Capacidade Produtiva</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Horas Produtivas / Mês</label>
-                            <input type="number" id="cfg-horas" step="0.1" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm" onchange="app.salvarConfig()">
-                        </div>
-                        <div class="flex items-end">
-                            <div class="bg-verde-claro/20 border border-verde-principal px-4 py-2.5 rounded-lg w-full text-center">
-                                <p class="text-xs text-verde-oliva">Custo por Minuto</p>
-                                <p class="font-bold text-verde-escuro" id="cfg-custo-min">R$ 0,0000</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-6">
-                    <h3 class="font-semibold text-verde-escuro mb-4 border-b border-bege-pedra pb-3">Taxas Padrão (Simulador)</h3>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div><label class="block text-sm font-medium mb-1">Impostos (%)</label>
-                            <input type="number" id="cfg-imposto" step="0.1" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm" onchange="app.salvarConfig()"></div>
-                        <div><label class="block text-sm font-medium mb-1">Cartão (%)</label>
-                            <input type="number" id="cfg-cartao" step="0.1" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm" onchange="app.salvarConfig()"></div>
-                        <div><label class="block text-sm font-medium mb-1">Lucro Desejado (%)</label>
-                            <input type="number" id="cfg-lucro" step="0.1" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm" onchange="app.salvarConfig()"></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-</div>
-
-<!-- ===== MODAL PROCEDIMENTO ===== -->
-<div id="modal-procedimento" class="hidden fixed inset-0 bg-black/40 modal-overlay flex items-center justify-center z-50 p-4">
-    <div class="bg-fundo-suave rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div class="flex justify-between items-center px-6 py-4 border-b border-bege-pedra">
-            <h3 class="font-bold text-verde-escuro text-lg" id="modal-proc-titulo">Novo Procedimento</h3>
-            <button onclick="app.fecharModal('modal-procedimento')" class="text-texto/30 hover:text-rose text-xl transition"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="overflow-y-auto flex-1 p-6 space-y-5">
-            <input type="hidden" id="mp-id">
-            <div class="grid grid-cols-2 gap-4">
-                <div class="col-span-2"><label class="block text-sm font-medium mb-1">Nome *</label>
-                    <input type="text" id="mp-nome" placeholder="Ex: Toxina Botulínica Testa" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-                <div><label class="block text-sm font-medium mb-1">Tempo de Cabine (min) *</label>
-                    <input type="number" id="mp-tempo" placeholder="60" oninput="app.calcularCustoProc()" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-                <div><label class="block text-sm font-medium mb-1">Preço de Venda (R$)</label>
-                    <input type="number" id="mp-preco" step="0.01" placeholder="0.00" oninput="app.calcularCustoProc()" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-            </div>
-            <div>
-                <div class="flex justify-between items-center mb-2">
-                    <label class="text-sm font-semibold text-verde-escuro">Ficha Técnica de Insumos</label>
-                    <button onclick="app.addLinhaFicha()" class="text-xs text-verde-principal hover:underline"><i class="fas fa-plus mr-1"></i>Adicionar Insumo</button>
-                </div>
-                <div id="ficha-tecnica-linhas" class="space-y-2 bg-fundo-principal p-3 rounded-lg border border-bege-pedra min-h-12">
-                    <p class="text-xs text-texto/40 text-center py-1">Nenhum insumo adicionado.</p>
-                </div>
-                <div class="flex justify-between text-sm font-medium text-verde-escuro mt-2 px-1">
-                    <span>Custo de Insumos:</span><span id="mp-custo-insumos">R$ 0,00</span>
-                </div>
-            </div>
-            <div class="bg-verde-escuro text-white rounded-xl p-4">
-                <div class="flex justify-between items-center mb-3">
-                    <p class="font-semibold text-sm">Simulação de Markup</p>
-                    <button onclick="app.calcularPrecoSugerido()" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition">
-                        <i class="fas fa-bolt mr-1"></i>Calcular Preço Ideal
-                    </button>
-                </div>
-                <div class="grid grid-cols-3 gap-3 text-sm">
-                    <div class="bg-white/10 p-3 rounded-lg"><p class="text-verde-claro text-xs">Custo Direto</p><p class="font-bold" id="mp-sim-custo">R$ 0,00</p></div>
-                    <div class="bg-verde-principal p-3 rounded-lg"><p class="text-white text-xs">Preço Sugerido</p><p class="font-bold text-lg" id="mp-sim-preco">R$ 0,00</p></div>
-                    <div class="bg-white/10 p-3 rounded-lg"><p class="text-verde-claro text-xs">Lucro Líquido</p><p class="font-bold" id="mp-sim-lucro">R$ 0,00</p></div>
-                </div>
-            </div>
-        </div>
-        <div class="flex justify-end gap-3 px-6 py-4 border-t border-bege-pedra">
-            <button onclick="app.fecharModal('modal-procedimento')" class="px-5 py-2 border border-bege-pedra rounded-lg text-sm hover:bg-bege-pedra/30 transition">Cancelar</button>
-            <button onclick="app.salvarProcedimento()" class="bg-verde-principal text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-verde-escuro transition">Salvar</button>
-        </div>
+<!-- APP -->
+<div id="appShell" class="hidden flex flex-col h-screen">
+  <header class="bg-white border-b border-rose-100 px-4 py-2 flex items-center gap-3 no-print">
+    <div class="w-8 h-8 bg-rose-100 rounded-full flex items-center justify-center"><span class="text-lg">🌸</span></div>
+    <span class="font-bold text-gray-800 text-sm">Gestão Financeira</span>
+    <span class="text-xs text-gray-400 hidden sm:block">Dra Mariana Leite</span>
+    <div class="ml-auto flex items-center gap-2">
+      <span id="syncStatus" class="text-xs text-gray-400"></span>
+      <button onclick="auth.logout()" class="btn btn-sm btn-secondary">Sair</button>
     </div>
-</div>
-
-<!-- ===== MODAL INSUMO ===== -->
-<div id="modal-insumo" class="hidden fixed inset-0 bg-black/40 modal-overlay flex items-center justify-center z-50 p-4">
-    <div class="bg-fundo-suave rounded-2xl shadow-2xl w-full max-w-md">
-        <div class="flex justify-between items-center px-6 py-4 border-b border-bege-pedra">
-            <h3 class="font-bold text-verde-escuro text-lg" id="modal-ins-titulo">Novo Insumo</h3>
-            <button onclick="app.fecharModal('modal-insumo')" class="text-texto/30 hover:text-rose text-xl transition"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="p-6 space-y-4">
-            <input type="hidden" id="mi-id">
-            <div><label class="block text-sm font-medium mb-1">Nome do Produto *</label>
-                <input type="text" id="mi-nome" placeholder="Ex: Toxina Botulínica 100UI" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-            <div class="grid grid-cols-2 gap-3">
-                <div><label class="block text-sm font-medium mb-1">Categoria</label>
-                    <input type="text" id="mi-categoria" placeholder="Ex: Químicos" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-                <div><label class="block text-sm font-medium mb-1">Unidade</label>
-                    <input type="text" id="mi-unidade" placeholder="Ex: Ampola" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div><label class="block text-sm font-medium mb-1">Custo Unitário (R$) *</label>
-                    <input type="number" id="mi-custo" step="0.0001" placeholder="0.00" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-                <div><label class="block text-sm font-medium mb-1">Estoque Atual</label>
-                    <input type="number" id="mi-estoque" step="0.1" placeholder="0" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-            </div>
-            <div><label class="block text-sm font-medium mb-1">Estoque Mínimo (Alerta)</label>
-                <input type="number" id="mi-estoque-min" step="0.1" placeholder="0" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-        </div>
-        <div class="flex justify-end gap-3 px-6 py-4 border-t border-bege-pedra">
-            <button onclick="app.fecharModal('modal-insumo')" class="px-5 py-2 border border-bege-pedra rounded-lg text-sm hover:bg-bege-pedra/30 transition">Cancelar</button>
-            <button onclick="app.salvarInsumo()" class="bg-verde-principal text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-verde-escuro transition">Salvar</button>
-        </div>
-    </div>
-</div>
-
-<!-- ===== MODAL CUSTO FIXO ===== -->
-<div id="modal-custo-fixo" class="hidden fixed inset-0 bg-black/40 modal-overlay flex items-center justify-center z-50 p-4">
-    <div class="bg-fundo-suave rounded-2xl shadow-2xl w-full max-w-sm">
-        <div class="flex justify-between items-center px-6 py-4 border-b border-bege-pedra">
-            <h3 class="font-bold text-verde-escuro" id="modal-cf-titulo">Nova Despesa Fixa</h3>
-            <button onclick="app.fecharModal('modal-custo-fixo')" class="text-texto/30 hover:text-rose text-xl transition"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="p-6 space-y-4">
-            <input type="hidden" id="mcf-id">
-            <div><label class="block text-sm font-medium mb-1">Descrição *</label>
-                <input type="text" id="mcf-desc" placeholder="Ex: Aluguel" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-            <div><label class="block text-sm font-medium mb-1">Valor Mensal (R$) *</label>
-                <input type="number" id="mcf-valor" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
-        </div>
-        <div class="flex justify-end gap-3 px-6 py-4 border-t border-bege-pedra">
-            <button onclick="app.fecharModal('modal-custo-fixo')" class="px-5 py-2 border border-bege-pedra rounded-lg text-sm hover:bg-bege-pedra/30 transition">Cancelar</button>
-            <button onclick="app.salvarCustoFixo()" class="bg-verde-principal text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-verde-escuro transition">Salvar</button>
-        </div>
-    </div>
+  </header>
+  <div class="flex flex-1 overflow-hidden">
+    <nav id="sidebar" class="w-44 bg-white border-r border-rose-100 flex flex-col py-3 px-2 gap-1 overflow-y-auto no-print flex-shrink-0">
+      <div onclick="goTo('dashboard')" class="nav-item" id="nav-dashboard">📊 Dashboard</div>
+      <div onclick="goTo('procedimentos')" class="nav-item" id="nav-procedimentos">💉 Procedimentos</div>
+      <div onclick="goTo('estoque')" class="nav-item" id="nav-estoque">📦 Estoque</div>
+      <div onclick="goTo('atendimentos')" class="nav-item" id="nav-atendimentos">📋 Atendimentos</div>
+      <div onclick="goTo('pacientes')" class="nav-item" id="nav-pacientes">👥 Pacientes</div>
+      <div onclick="goTo('financeiro')" class="nav-item" id="nav-financeiro">💰 Financeiro</div>
+      <div onclick="goTo('relatorios')" class="nav-item" id="nav-relatorios">📄 Relatórios</div>
+      <div onclick="goTo('configuracoes')" class="nav-item" id="nav-configuracoes">⚙️ Config</div>
+    </nav>
+    <main id="mainContent" class="flex-1 overflow-y-auto p-4 md:p-6"></main>
+  </div>
 </div>
 
 <script>
-// ================================================================
-//  SISTEMA FINANCEIRO DRA MARIANA LEITE — v2.1
-//  Auth: Supabase | Storage: Supabase + localStorage fallback
-// ================================================================
+const SB_URL = 'https://slbxxprtdsjrwxpeygog.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsYnh4cHJ0ZHNqcnd4cGV5Z29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzkyNjcsImV4cCI6MjA2NjQ1NTI2N30.SyKL5HjXMLMVlKPTEFgVVl7ABXF3tgaJ_qC5gJKJHK0';
+const sb = supabase.createClient(SB_URL, SB_KEY);
 
-const SUPA_URL = 'https://slbxxprtdsjrwxpeygog.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsYnh4cHJ0ZHNqcnd4cGV5Z29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMjMwMjYsImV4cCI6MjA5Nzg5OTAyNn0.vomdmn90--Fe3FtnnO5FzRkZ4XBis8zMKQulZ1XqdzM';
+const S = { user:null, insumos:[], fixos:[], procs:[], regs:[], cfg:{},
+  pacientes:[], recebimentos:[], despesas:[], compras:[], metas:[] };
+let currentPage = 'dashboard';
+let chartInstance = null;
 
-const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+const fmtBRL = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0);
+const fmtPct = v => `${(+v||0).toFixed(1)}%`;
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const today = () => new Date().toISOString().slice(0,10);
+const mesAtual = () => new Date().toISOString().slice(0,7);
+const nomeMes = m => { try{ return new Date(m+'-02').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}); }catch(e){ return m; } };
 
-// ── ESTADO GLOBAL ────────────────────────────────────────────────
-const S = {
-    user: null,
-    insumos: [],
-    fixos: [],
-    procs: [],
-    regs: [],
-    cfg: { horas: 139.41, imposto: 6, cartao: 3.5, lucro: 30 }
-};
-
-// ── HELPERS ──────────────────────────────────────────────────────
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
-const brl = n => 'R$ ' + Number(n||0).toFixed(2).replace('.', ',');
-const lsKey = k => `gf_${S.user?.id?.slice(0,8)}_${k}`;
-const lsSave = (k, v) => { try { localStorage.setItem(lsKey(k), JSON.stringify(v)); } catch {} };
-const lsLoad = (k) => { try { return JSON.parse(localStorage.getItem(lsKey(k))); } catch { return null; } };
-const custoMinuto = () => {
-    const t = S.fixos.reduce((a,c) => a + Number(c.valor), 0);
-    return t / (S.cfg.horas * 60);
-};
-const custoInsumosFicha = ficha => (ficha||[]).reduce((acc, l) => {
-    const ins = S.insumos.find(i => i.id === l.insumo_id);
-    return acc + (ins ? Number(ins.custo) * Number(l.qtd) : 0);
-}, 0);
-
-// ── SYNC STATUS ──────────────────────────────────────────────────
-function setSyncStatus(estado) {
-    const icon = document.getElementById('sync-icon');
-    const msg = document.getElementById('sync-msg');
-    const ind = document.getElementById('sync-indicator');
-    if (estado === 'syncing') { icon.className = 'fas fa-circle-notch fa-spin'; msg.textContent = 'Sincronizando...'; ind.style.opacity = '1'; }
-    else if (estado === 'ok') { icon.className = 'fas fa-cloud text-verde-principal'; msg.textContent = 'Sincronizado'; ind.style.opacity = '1'; setTimeout(() => ind.style.opacity = '0.5', 2000); }
-    else if (estado === 'offline') { icon.className = 'fas fa-server text-rose'; msg.textContent = 'Modo local (offline)'; ind.style.opacity = '1'; }
-    else if (estado === 'erro') { icon.className = 'fas fa-exclamation-triangle text-rose'; msg.textContent = 'Erro ao sincronizar'; ind.style.opacity = '1'; }
+function tip(formula, label='ℹ') {
+  return `<span class="tooltip text-rose-400 text-xs ml-1">${label}<span class="tip">${formula}</span></span>`;
 }
 
-// ── SUPABASE CRUD ────────────────────────────────────────────────
-async function cloudUpsert(tabela, obj) {
-    if (!S.user) return;
-    setSyncStatus('syncing');
-    const { error } = await sb.from(tabela).upsert({ ...obj, user_id: S.user.id });
-    setSyncStatus(error ? 'erro' : 'ok');
-    if (error) console.error('Sync error:', tabela, error.message);
+function lsKey(t) { return `gf_${S.user.id.slice(0,8)}_${t}`; }
+function lsSave(t,d) { try{ localStorage.setItem(lsKey(t),JSON.stringify(d)); }catch(e){} }
+function lsLoad(t) { try{ return JSON.parse(localStorage.getItem(lsKey(t)))||[]; }catch(e){ return []; } }
+function lsLoadObj(t,def={}) { try{ return JSON.parse(localStorage.getItem(lsKey(t)))||def; }catch(e){ return def; } }
+
+function setSyncStatus(msg,color='text-gray-400') {
+  const el = document.getElementById('syncStatus');
+  if(el){ el.textContent=msg; el.className='text-xs '+color; }
 }
 
-async function cloudDelete(tabela, id) {
-    if (!S.user) return;
-    setSyncStatus('syncing');
-    const { error } = await sb.from(tabela).delete().eq('id', id).eq('user_id', S.user.id);
-    setSyncStatus(error ? 'erro' : 'ok');
+async function cloudUpsert(table,obj) {
+  try{ const {error}=await sb.from(table).upsert({...obj,user_id:S.user.id}); if(error) console.warn(table,error.message); }catch(e){}
+}
+async function cloudDelete(table,id) {
+  try{ await sb.from(table).delete().eq('id',id).eq('user_id',S.user.id); }catch(e){}
+}
+async function cloudLoad(table) {
+  try{ const {data,error}=await sb.from(table).select('*').eq('user_id',S.user.id); if(error) return null; return data; }catch(e){ return null; }
 }
 
-async function cloudUpsertConfig() {
-    if (!S.user) return;
-    await sb.from('config_clinica').upsert({ user_id: S.user.id, ...S.cfg, updated_at: new Date().toISOString() });
-}
-
-async function syncFromCloud() {
-    if (!S.user) return;
-    setSyncStatus('syncing');
-    try {
-        const [ri, rf, rp, rr, rc] = await Promise.all([
-            sb.from('insumos').select('*').eq('user_id', S.user.id),
-            sb.from('custos_fixos').select('*').eq('user_id', S.user.id),
-            sb.from('procedimentos').select('*').eq('user_id', S.user.id),
-            sb.from('registros').select('*').eq('user_id', S.user.id).order('data', { ascending: false }),
-            sb.from('config_clinica').select('*').eq('user_id', S.user.id).single()
-        ]);
-
-        if (!ri.error && ri.data?.length > 0) { S.insumos = ri.data; lsSave('insumos', S.insumos); }
-        else { S.insumos = lsLoad('insumos') || insumosPadrao(); if (ri.data?.length === 0) await Promise.all(S.insumos.map(i => cloudUpsert('insumos', i))); }
-
-        if (!rf.error && rf.data?.length > 0) { S.fixos = rf.data; lsSave('fixos', S.fixos); }
-        else { S.fixos = lsLoad('fixos') || fixosPadrao(); if (rf.data?.length === 0) await Promise.all(S.fixos.map(f => cloudUpsert('custos_fixos', f))); }
-
-        if (!rp.error) { S.procs = rp.data || []; lsSave('procs', S.procs); }
-        else S.procs = lsLoad('procs') || [];
-
-        if (!rr.error) { S.regs = rr.data || []; lsSave('regs', S.regs); }
-        else S.regs = lsLoad('regs') || [];
-
-        if (!rc.error && rc.data) {
-            S.cfg = { horas: rc.data.horas, imposto: rc.data.imposto, cartao: rc.data.cartao, lucro: rc.data.lucro };
-            lsSave('cfg', S.cfg);
-        } else {
-            S.cfg = lsLoad('cfg') || S.cfg;
-        }
-
-        setSyncStatus('ok');
-    } catch (e) {
-        console.error('Sync failed:', e);
-        S.insumos = lsLoad('insumos') || insumosPadrao();
-        S.fixos   = lsLoad('fixos')   || fixosPadrao();
-        S.procs   = lsLoad('procs')   || [];
-        S.regs    = lsLoad('regs')    || [];
-        S.cfg     = lsLoad('cfg')     || S.cfg;
-        setSyncStatus('offline');
-    }
-}
-
-// ── AUTH ─────────────────────────────────────────────────────────
 const auth = {
-    async entrar() {
-        const email = document.getElementById('login-email').value.trim();
-        const senha = document.getElementById('login-senha').value;
-        if (!email || !senha) { this._erro('Preencha e-mail e senha.'); return; }
-
-        const btn = document.getElementById('btn-login');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Entrando...';
-
-        const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Entrar';
-
-        if (error) {
-            this._erro('E-mail ou senha incorretos.');
-            return;
-        }
-        S.user = data.user;
-        await this._abrirApp();
-    },
-
-    async criarConta() {
-        const email = document.getElementById('login-email').value.trim();
-        const senha = document.getElementById('login-senha').value;
-        if (!email || !senha) { this._erro('Preencha e-mail e senha.'); return; }
-        if (senha.length < 6) { this._erro('Senha deve ter pelo menos 6 caracteres.'); return; }
-
-        const btn = document.getElementById('btn-criar');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Criando...';
-
-        const { data, error } = await sb.auth.signUp({ email, password: senha });
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-user-plus mr-2"></i>Criar Conta';
-
-        if (error) { this._erro(error.message); return; }
-        if (data.user && !data.session) {
-            this._erro('Confirme o e-mail antes de entrar. Verifique sua caixa de entrada.');
-            return;
-        }
-        S.user = data.user;
-        await this._abrirApp();
-    },
-
-    async sair() {
-        await sb.auth.signOut();
-        S.user = null;
-        document.getElementById('app').classList.add('hidden');
-        document.getElementById('tela-login').classList.remove('hidden');
-    },
-
-    async _abrirApp() {
-        document.getElementById('tela-login').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-        document.getElementById('app').classList.add('flex');
-        await syncFromCloud();
-        app.init();
-    },
-
-    _erro(msg) {
-        document.getElementById('login-erro').classList.remove('hidden');
-        document.getElementById('login-erro-msg').textContent = msg;
-    },
-
-    toggleSenha() {
-        const input = document.getElementById('login-senha');
-        const icon = document.getElementById('icone-senha');
-        if (input.type === 'password') { input.type = 'text'; icon.className = 'fas fa-eye-slash text-sm'; }
-        else { input.type = 'password'; icon.className = 'fas fa-eye text-sm'; }
-    },
-
-    toggleModoCriar() {
-        const modo = document.getElementById('modo-criar');
-        const txt = document.getElementById('texto-toggle-modo');
-        const hidden = modo.classList.contains('hidden');
-        modo.classList.toggle('hidden', !hidden);
-        txt.textContent = hidden ? 'Já tenho conta' : 'Primeiro acesso? Criar conta';
-    }
+  async login() {
+    const email=document.getElementById('loginEmail').value.trim();
+    const pass=document.getElementById('loginPass').value;
+    const err=document.getElementById('loginErr');
+    err.classList.add('hidden');
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error){ err.textContent='E-mail ou senha incorretos.'; err.classList.remove('hidden'); return; }
+    S.user=data.user;
+    await loadAll();
+    showApp();
+  },
+  async logout() {
+    await sb.auth.signOut(); S.user=null;
+    document.getElementById('appShell').classList.add('hidden');
+    document.getElementById('loginPage').classList.remove('hidden');
+  }
 };
 
-// Checar sessão existente ao carregar
-window.addEventListener('DOMContentLoaded', async () => {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session?.user) {
-        S.user = session.user;
-        await auth._abrirApp();
-    }
-});
-
-// ── APP ──────────────────────────────────────────────────────────
-const app = {
-    init() {
-        const hoje = new Date().toISOString();
-        document.getElementById('filtro-mes').value = hoje.slice(0, 7);
-        document.getElementById('filtro-mes-reg').value = hoje.slice(0, 7);
-        document.getElementById('reg-data').value = hoje.slice(0, 10);
-        this._renderConfigCampos();
-        this.goTo('dashboard');
-    },
-
-    goTo(page) {
-        const titulos = { dashboard:'Dashboard & DRE', procedimentos:'Procedimentos & Simulador', estoque:'Controle de Estoque', registros:'Registrar Atendimento', configuracoes:'Configurações' };
-        document.querySelectorAll('.aba-page').forEach(el => el.classList.add('hidden'));
-        document.getElementById('page-' + page).classList.remove('hidden');
-        document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('tab-active'));
-        document.getElementById('nav-' + page).classList.add('tab-active');
-        document.getElementById('header-title').textContent = titulos[page];
-        if (page === 'dashboard')     this.renderDashboard();
-        if (page === 'procedimentos') this.renderProcedimentos();
-        if (page === 'estoque')       this.renderEstoque();
-        if (page === 'registros')     this._renderRegistrosForm();
-        if (page === 'configuracoes') this._renderConfigPage();
-    },
-
-    // ── DASHBOARD ──
-    renderDashboard() {
-        this._atualizarCustoMinBadge();
-        const mes = document.getElementById('filtro-mes').value;
-        const regs = S.regs.filter(r => r.data?.startsWith(mes));
-        const fat = regs.reduce((a,r) => a + Number(r.preco), 0);
-        const custoVar = regs.reduce((a,r) => a + Number(r.custo_insumos||0) + Number(r.custo_tempo||0), 0);
-        const totalFixo = S.fixos.reduce((a,c) => a + Number(c.valor), 0);
-        const lucro = fat - custoVar - totalFixo;
-        const margem = fat > 0 ? (lucro / fat * 100) : 0;
-
-        document.getElementById('kpi-faturamento').textContent = brl(fat);
-        document.getElementById('kpi-atendimentos').textContent = regs.length + (regs.length !== 1 ? ' atendimentos' : ' atendimento');
-        document.getElementById('kpi-custo-variavel').textContent = brl(custoVar);
-        document.getElementById('kpi-custo-fixo').textContent = brl(totalFixo);
-        document.getElementById('kpi-lucro').textContent = brl(lucro);
-        document.getElementById('kpi-lucro').className = 'text-2xl font-bold ' + (lucro >= 0 ? 'text-white' : 'text-rose');
-        document.getElementById('kpi-margem').textContent = 'Margem: ' + margem.toFixed(1) + '%';
-
-        // DRE
-        const dreEl = document.getElementById('dre-content');
-        if (fat === 0 && totalFixo === 0) {
-            dreEl.innerHTML = '<p class="text-sm text-texto/40 text-center py-6">Registre atendimentos para visualizar o DRE.</p>';
-        } else {
-            const custoIns = regs.reduce((a,r) => a + Number(r.custo_insumos||0), 0);
-            const custoTempo = regs.reduce((a,r) => a + Number(r.custo_tempo||0), 0);
-            const lucroB = fat - custoVar;
-            dreEl.innerHTML = `<div class="space-y-1 text-sm max-w-lg mx-auto">
-                ${this._dreRow('(+) Receita Bruta', fat, true, 'font-bold text-verde-escuro')}
-                ${this._dreRow('(−) Custo de Insumos', -custoIns)}
-                ${this._dreRow('(−) Custo de Cabine (Tempo)', -custoTempo)}
-                <div class="border-t border-bege-pedra my-2"></div>
-                ${this._dreRow('(=) Lucro Bruto', lucroB, true)}
-                ${this._dreRow('(−) Despesas Fixas', -totalFixo)}
-                <div class="border-t border-verde-oliva/20 my-2"></div>
-                ${this._dreRow('(=) Resultado Operacional', lucro, true, 'font-bold ' + (lucro>=0?'text-verde-escuro':'text-rose'))}
-            </div>`;
-        }
-
-        // Últimos registros
-        const ultimos = [...S.regs].slice(0, 5);
-        const histEl = document.getElementById('dashboard-registros');
-        histEl.innerHTML = ultimos.length === 0
-            ? '<p class="text-sm text-texto/40 text-center py-8">Nenhum atendimento registrado.</p>'
-            : ultimos.map(r => `<div class="flex items-center justify-between px-6 py-3 hover:bg-fundo-principal/50 transition">
-                <div><p class="font-medium text-sm">${r.proc_nome}</p>
-                <p class="text-xs text-texto/50">${this._fmtData(r.data)} · ${r.pagamento}</p></div>
-                <span class="font-semibold text-verde-escuro">${brl(r.preco)}</span>
-            </div>`).join('');
-
-        this._atualizarBadgeEstoque();
-        this.renderGrafico();
-        this.renderAnalisePrecos();
-    },
-
-    _dreRow(label, valor, bold=false, cls='') {
-        const cor = valor < 0 ? 'text-rose' : (valor > 0 ? 'text-verde-escuro' : 'text-texto/50');
-        const c = cls || (bold ? `font-semibold ${cor}` : cor);
-        return `<div class="flex justify-between py-1 px-2 rounded ${bold?'bg-fundo-principal':''}">
-            <span class="${bold?'font-medium':''} text-texto">${label}</span>
-            <span class="${c}">${brl(Math.abs(valor))}</span>
-        </div>`;
-    },
-
-    _fmtData(d) {
-        if (!d) return '';
-        const [y,m,dia] = d.split('-');
-        return `${dia}/${m}/${y}`;
-    },
-
-    _atualizarCustoMinBadge() {
-        const cm = custoMinuto();
-        document.getElementById('badge-custo-minuto').childNodes[0].textContent = ' Custo/min: R$ ' + cm.toFixed(4).replace('.', ',') + ' ';
-    },
-
-    _atualizarBadgeEstoque() {
-        const al = S.insumos.filter(i => Number(i.estoque_min||0) > 0 && Number(i.estoque||0) <= Number(i.estoque_min||0));
-        const b = document.getElementById('badge-estoque');
-        if (al.length > 0) { b.classList.remove('hidden'); b.textContent = al.length; }
-        else b.classList.add('hidden');
-    },
-
-    // ── PROCEDIMENTOS ──
-    renderProcedimentos() {
-        this._atualizarCustoMinBadge();
-        const el = document.getElementById('lista-procedimentos');
-        if (S.procs.length === 0) {
-            el.innerHTML = '<p class="text-sm text-texto/40 text-center py-10 bg-fundo-suave rounded-xl border border-bege-pedra">Nenhum procedimento cadastrado.</p>';
-            return;
-        }
-        el.innerHTML = S.procs.map(p => {
-            const ci = custoInsumosFicha(p.ficha);
-            const ct = Number(p.tempo||0) * custoMinuto();
-            const cd = ci + ct;
-            const chips = (p.ficha||[]).map(l => {
-                const ins = S.insumos.find(i => i.id === l.insumo_id);
-                return ins ? `<span class="bg-bege-pedra/40 text-xs px-2 py-0.5 rounded-full">${ins.nome} ×${l.qtd}</span>` : '';
-            }).join('');
-            return `<div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-5">
-                <div class="flex justify-between items-start gap-4">
-                    <div class="flex-1">
-                        <h4 class="font-semibold text-verde-escuro">${p.nome}</h4>
-                        <p class="text-xs text-texto/50 mt-0.5">${p.tempo} min de cabine</p>
-                        ${chips ? `<div class="flex flex-wrap gap-1 mt-2">${chips}</div>` : ''}
-                    </div>
-                    <div class="flex items-center gap-5 text-right flex-shrink-0">
-                        <div><p class="text-xs text-texto/50">Custo Direto</p><p class="font-medium text-rose text-sm">${brl(cd)}</p></div>
-                        <div><p class="text-xs text-texto/50">Preço Venda</p><p class="font-semibold text-verde-escuro">${brl(p.preco)}</p></div>
-                        <div class="flex gap-1">
-                            <button onclick="app.abrirModalProcedimento('${p.id}')" class="text-verde-oliva hover:text-verde-escuro p-1.5 rounded hover:bg-bege-pedra/40 transition"><i class="fas fa-pen text-xs"></i></button>
-                            <button onclick="app.excluirProcedimento('${p.id}')" class="text-rose/50 hover:text-rose p-1.5 rounded hover:bg-rose/10 transition"><i class="fas fa-trash text-xs"></i></button>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
-    },
-
-    abrirModalProcedimento(id) {
-        const p = id ? S.procs.find(x => x.id === id) : null;
-        document.getElementById('modal-proc-titulo').textContent = p ? 'Editar Procedimento' : 'Novo Procedimento';
-        document.getElementById('mp-id').value = p?.id || '';
-        document.getElementById('mp-nome').value = p?.nome || '';
-        document.getElementById('mp-tempo').value = p?.tempo || '';
-        document.getElementById('mp-preco').value = p?.preco || '';
-        this._renderFichaTecnica(p?.ficha || []);
-        this.calcularCustoProc();
-        document.getElementById('modal-procedimento').classList.remove('hidden');
-    },
-
-    _renderFichaTecnica(ficha) {
-        const el = document.getElementById('ficha-tecnica-linhas');
-        if (!ficha?.length) { el.innerHTML = '<p class="text-xs text-texto/40 text-center py-1">Nenhum insumo adicionado.</p>'; return; }
-        el.innerHTML = ficha.map((l,i) => `
-            <div class="flex items-center gap-2">
-                <select class="flex-1 px-2 py-1.5 border border-bege-pedra rounded-lg bg-white text-xs ficha-sel" data-idx="${i}" onchange="app.calcularCustoProc()">
-                    <option value="">Selecionar insumo...</option>
-                    ${S.insumos.map(ins => `<option value="${ins.id}" ${ins.id===l.insumo_id?'selected':''}>${ins.nome} (${ins.unidade})</option>`).join('')}
-                </select>
-                <input type="number" step="0.1" value="${l.qtd}" placeholder="Qtd" class="w-20 px-2 py-1.5 border border-bege-pedra rounded-lg bg-white text-xs ficha-qtd" data-idx="${i}" oninput="app.calcularCustoProc()">
-                <button onclick="app.removerLinhaFicha(${i})" class="text-rose/50 hover:text-rose p-1 transition"><i class="fas fa-times text-xs"></i></button>
-            </div>`).join('');
-    },
-
-    addLinhaFicha() {
-        const f = this._getFichaUI();
-        f.push({ insumo_id: '', qtd: 1 });
-        this._renderFichaTecnica(f);
-    },
-
-    removerLinhaFicha(idx) {
-        const f = this._getFichaUI();
-        f.splice(idx, 1);
-        this._renderFichaTecnica(f);
-        this.calcularCustoProc();
-    },
-
-    _getFichaUI() {
-        const sels = document.querySelectorAll('.ficha-sel');
-        const qtds = document.querySelectorAll('.ficha-qtd');
-        return Array.from(sels).map((s,i) => ({ insumo_id: s.value, qtd: parseFloat(qtds[i]?.value||1)||1 })).filter(l => l.insumo_id);
-    },
-
-    calcularCustoProc() {
-        const ficha = this._getFichaUI();
-        const ci = custoInsumosFicha(ficha);
-        const t = parseFloat(document.getElementById('mp-tempo').value)||0;
-        const ct = t * custoMinuto();
-        const cd = ci + ct;
-        const preco = parseFloat(document.getElementById('mp-preco').value)||0;
-        document.getElementById('mp-custo-insumos').textContent = brl(ci);
-        document.getElementById('mp-sim-custo').textContent = brl(cd);
-        document.getElementById('mp-sim-preco').textContent = brl(preco);
-        document.getElementById('mp-sim-lucro').textContent = brl(preco - cd);
-    },
-
-    calcularPrecoSugerido() {
-        const ficha = this._getFichaUI();
-        const ci = custoInsumosFicha(ficha);
-        const t = parseFloat(document.getElementById('mp-tempo').value)||0;
-        const cd = ci + t * custoMinuto();
-        const soma = (S.cfg.imposto + S.cfg.cartao + S.cfg.lucro) / 100;
-        if (soma >= 1) { alert('Taxas excedem 100%'); return; }
-        const preco = cd / (1 - soma);
-        document.getElementById('mp-preco').value = preco.toFixed(2);
-        this.calcularCustoProc();
-    },
-
-    async salvarProcedimento() {
-        const nome = document.getElementById('mp-nome').value.trim();
-        const tempo = parseFloat(document.getElementById('mp-tempo').value);
-        if (!nome || !tempo) { alert('Preencha nome e tempo.'); return; }
-        const id = document.getElementById('mp-id').value || uid();
-        const obj = { id, nome, tempo, preco: parseFloat(document.getElementById('mp-preco').value)||0, ficha: this._getFichaUI() };
-        const idx = S.procs.findIndex(p => p.id === id);
-        if (idx >= 0) S.procs[idx] = obj; else S.procs.push(obj);
-        lsSave('procs', S.procs);
-        this.fecharModal('modal-procedimento');
-        this.renderProcedimentos();
-        await cloudUpsert('procedimentos', obj);
-    },
-
-    async excluirProcedimento(id) {
-        if (!confirm('Excluir este procedimento?')) return;
-        S.procs = S.procs.filter(p => p.id !== id);
-        lsSave('procs', S.procs);
-        this.renderProcedimentos();
-        await cloudDelete('procedimentos', id);
-    },
-
-    // ── ESTOQUE ──
-    renderEstoque() {
-        const tbody = document.getElementById('tabela-estoque');
-        if (!S.insumos.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-sm text-texto/40 py-8">Nenhum insumo cadastrado.</td></tr>'; return; }
-        tbody.innerHTML = S.insumos.map(i => {
-            const est = Number(i.estoque||0);
-            const min = Number(i.estoque_min||0);
-            const al = min > 0 && est <= min;
-            return `<tr class="border-b border-bege-pedra/50 hover:bg-fundo-principal/50 transition text-sm ${al?'bg-rose/5':''}">
-                <td class="px-4 py-3 font-medium">${i.nome}</td>
-                <td class="px-4 py-3 text-xs text-verde-oliva">${i.categoria||'—'}</td>
-                <td class="px-4 py-3 text-xs">${i.unidade||'—'}</td>
-                <td class="px-4 py-3 text-right font-medium text-verde-escuro">${brl(i.custo)}</td>
-                <td class="px-4 py-3 text-center">
-                    <input type="number" step="0.1" value="${est}" class="w-20 text-center px-2 py-1 border border-bege-pedra rounded-lg bg-white text-sm"
-                        onchange="app.atualizarEstoqueInline('${i.id}', this.value)">
-                </td>
-                <td class="px-4 py-3 text-center">
-                    ${al ? '<span class="bg-rose/10 text-rose text-xs px-2 py-0.5 rounded-full border border-rose/20 badge-alert">Baixo</span>'
-                         : '<span class="bg-verde-claro/20 text-verde-escuro text-xs px-2 py-0.5 rounded-full border border-verde-claro/30">OK</span>'}
-                </td>
-                <td class="px-4 py-3 text-right">
-                    <button onclick="app.abrirModalInsumo('${i.id}')" class="text-verde-oliva hover:text-verde-escuro p-1 transition"><i class="fas fa-pen text-xs"></i></button>
-                    <button onclick="app.excluirInsumo('${i.id}')" class="text-rose/40 hover:text-rose p-1 transition ml-1"><i class="fas fa-trash text-xs"></i></button>
-                </td>
-            </tr>`;
-        }).join('');
-        this._atualizarBadgeEstoque();
-    },
-
-    async atualizarEstoqueInline(id, val) {
-        const ins = S.insumos.find(i => i.id === id);
-        if (!ins) return;
-        ins.estoque = parseFloat(val)||0;
-        lsSave('insumos', S.insumos);
-        this._atualizarBadgeEstoque();
-        await cloudUpsert('insumos', ins);
-    },
-
-    abrirModalInsumo(id) {
-        const i = id ? S.insumos.find(x => x.id === id) : null;
-        document.getElementById('modal-ins-titulo').textContent = i ? 'Editar Insumo' : 'Novo Insumo';
-        document.getElementById('mi-id').value = i?.id || '';
-        document.getElementById('mi-nome').value = i?.nome || '';
-        document.getElementById('mi-categoria').value = i?.categoria || '';
-        document.getElementById('mi-unidade').value = i?.unidade || '';
-        document.getElementById('mi-custo').value = i?.custo || '';
-        document.getElementById('mi-estoque').value = i?.estoque || '';
-        document.getElementById('mi-estoque-min').value = i?.estoque_min || '';
-        document.getElementById('modal-insumo').classList.remove('hidden');
-    },
-
-    async salvarInsumo() {
-        const nome = document.getElementById('mi-nome').value.trim();
-        const custo = parseFloat(document.getElementById('mi-custo').value);
-        if (!nome || isNaN(custo)) { alert('Nome e custo são obrigatórios.'); return; }
-        const id = document.getElementById('mi-id').value || uid();
-        const obj = { id, nome, custo, categoria: document.getElementById('mi-categoria').value.trim(), unidade: document.getElementById('mi-unidade').value.trim(), estoque: parseFloat(document.getElementById('mi-estoque').value)||0, estoque_min: parseFloat(document.getElementById('mi-estoque-min').value)||0 };
-        const idx = S.insumos.findIndex(i => i.id === id);
-        if (idx >= 0) S.insumos[idx] = obj; else S.insumos.push(obj);
-        lsSave('insumos', S.insumos);
-        this.fecharModal('modal-insumo');
-        this.renderEstoque();
-        await cloudUpsert('insumos', obj);
-    },
-
-    async excluirInsumo(id) {
-        if (!confirm('Excluir este insumo?')) return;
-        S.insumos = S.insumos.filter(i => i.id !== id);
-        lsSave('insumos', S.insumos);
-        this.renderEstoque();
-        await cloudDelete('insumos', id);
-    },
-
-    // ── REGISTROS ──
-    _renderRegistrosForm() {
-        const sel = document.getElementById('reg-procedimento');
-        sel.innerHTML = '<option value="">Selecione...</option>' + S.procs.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-        this.renderHistorico();
-    },
-
-    preencherRegistro() {
-        const id = document.getElementById('reg-procedimento').value;
-        const p = S.procs.find(x => x.id === id);
-        if (!p) { document.getElementById('reg-resumo').classList.add('hidden'); return; }
-        document.getElementById('reg-preco').value = p.preco || '';
-        const ci = custoInsumosFicha(p.ficha);
-        const ct = Number(p.tempo||0) * custoMinuto();
-        document.getElementById('reg-custo-insumos').textContent = brl(ci);
-        document.getElementById('reg-custo-tempo').textContent = brl(ct);
-        document.getElementById('reg-custo-total').textContent = brl(ci + ct);
-        const semEstoque = (p.ficha||[]).some(l => {
-            const ins = S.insumos.find(i => i.id === l.insumo_id);
-            return ins && (Number(ins.estoque||0) - Number(l.qtd)) < 0;
-        });
-        document.getElementById('reg-alerta-estoque').classList.toggle('hidden', !semEstoque);
-        document.getElementById('reg-resumo').classList.remove('hidden');
-    },
-
-    async registrarAtendimento() {
-        const data = document.getElementById('reg-data').value;
-        const procId = document.getElementById('reg-procedimento').value;
-        const preco = parseFloat(document.getElementById('reg-preco').value);
-        if (!data || !procId || isNaN(preco)) { alert('Preencha data, procedimento e preço.'); return; }
-        const p = S.procs.find(x => x.id === procId);
-        if (!p) return;
-        const ci = custoInsumosFicha(p.ficha);
-        const ct = Number(p.tempo||0) * custoMinuto();
-
-        // Baixa estoque
-        const insumosAlterados = [];
-        (p.ficha||[]).forEach(l => {
-            const ins = S.insumos.find(i => i.id === l.insumo_id);
-            if (ins) { ins.estoque = Math.max(0, Number(ins.estoque||0) - Number(l.qtd)); insumosAlterados.push(ins); }
-        });
-        lsSave('insumos', S.insumos);
-
-        const reg = { id: uid(), data, proc_id: procId, proc_nome: p.nome, preco, pagamento: document.getElementById('reg-pagamento').value, custo_insumos: ci, custo_tempo: ct };
-        S.regs.unshift(reg);
-        lsSave('regs', S.regs);
-
-        // Reset form
-        document.getElementById('reg-procedimento').value = '';
-        document.getElementById('reg-preco').value = '';
-        document.getElementById('reg-resumo').classList.add('hidden');
-        this.renderHistorico();
-        this._showToast('Atendimento registrado! Estoque atualizado.');
-
-        // Sync cloud async
-        await cloudUpsert('registros', reg);
-        await Promise.all(insumosAlterados.map(i => cloudUpsert('insumos', i)));
-    },
-
-    renderHistorico() {
-        const mes = document.getElementById('filtro-mes-reg').value;
-        const regs = S.regs.filter(r => r.data?.startsWith(mes));
-        const el = document.getElementById('historico-registros');
-        if (!regs.length) { el.innerHTML = '<p class="text-sm text-texto/40 text-center py-8">Nenhum atendimento neste período.</p>'; return; }
-        el.innerHTML = `<table class="w-full text-left">
-            <thead><tr class="bg-bege-pedra/30 text-verde-escuro text-xs uppercase tracking-wide">
-                <th class="px-4 py-3">Data</th><th class="px-4 py-3">Procedimento</th>
-                <th class="px-4 py-3">Pagamento</th><th class="px-4 py-3 text-right">Custo</th>
-                <th class="px-4 py-3 text-right">Faturado</th><th class="px-4 py-3"></th>
-            </tr></thead>
-            <tbody>${regs.map(r => `<tr class="border-b border-bege-pedra/50 hover:bg-fundo-principal/50 transition text-sm">
-                <td class="px-4 py-3 text-xs text-texto/60">${this._fmtData(r.data)}</td>
-                <td class="px-4 py-3 font-medium">${r.proc_nome}</td>
-                <td class="px-4 py-3 text-xs">${r.pagamento}</td>
-                <td class="px-4 py-3 text-right text-rose text-xs">${brl(Number(r.custo_insumos||0)+Number(r.custo_tempo||0))}</td>
-                <td class="px-4 py-3 text-right font-semibold text-verde-escuro">${brl(r.preco)}</td>
-                <td class="px-4 py-3 text-right"><button onclick="app.excluirRegistro('${r.id}')" class="text-rose/40 hover:text-rose p-1 transition"><i class="fas fa-trash text-xs"></i></button></td>
-            </tr>`).join('')}</tbody>
-        </table>`;
-    },
-
-    async excluirRegistro(id) {
-        if (!confirm('Excluir este registro?\nObs: o estoque não será restaurado.')) return;
-        S.regs = S.regs.filter(r => r.id !== id);
-        lsSave('regs', S.regs);
-        this.renderHistorico();
-        await cloudDelete('registros', id);
-    },
-
-    // ── CONFIGURAÇÕES ──
-    _renderConfigPage() {
-        this._renderConfigCampos();
-        this._renderCustosFixos();
-    },
-
-    _renderConfigCampos() {
-        document.getElementById('cfg-horas').value = S.cfg.horas;
-        document.getElementById('cfg-imposto').value = S.cfg.imposto;
-        document.getElementById('cfg-cartao').value = S.cfg.cartao;
-        document.getElementById('cfg-lucro').value = S.cfg.lucro;
-    },
-
-    _renderCustosFixos() {
-        const el = document.getElementById('lista-custos-fixos');
-        el.innerHTML = !S.fixos.length
-            ? '<p class="text-sm text-texto/40 text-center py-3">Nenhuma despesa cadastrada.</p>'
-            : S.fixos.map(c => `<div class="flex items-center gap-3 bg-fundo-principal p-3 rounded-lg border border-bege-pedra">
-                <span class="flex-1 font-medium text-sm">${c.descricao}</span>
-                <span class="font-bold text-verde-escuro">${brl(c.valor)}</span>
-                <button onclick="app.editarCustoFixo('${c.id}')" class="text-verde-oliva hover:text-verde-escuro p-1 transition"><i class="fas fa-pen text-xs"></i></button>
-                <button onclick="app.excluirCustoFixo('${c.id}')" class="text-rose/50 hover:text-rose p-1 transition"><i class="fas fa-trash text-xs"></i></button>
-            </div>`).join('');
-        document.getElementById('total-fixo').textContent = brl(S.fixos.reduce((a,c) => a + Number(c.valor), 0));
-        const cm = custoMinuto();
-        document.getElementById('cfg-custo-min').textContent = 'R$ ' + cm.toFixed(4).replace('.', ',');
-        this._atualizarCustoMinBadge();
-    },
-
-    addCustoFixo() {
-        document.getElementById('modal-cf-titulo').textContent = 'Nova Despesa Fixa';
-        document.getElementById('mcf-id').value = '';
-        document.getElementById('mcf-desc').value = '';
-        document.getElementById('mcf-valor').value = '';
-        document.getElementById('modal-custo-fixo').classList.remove('hidden');
-    },
-
-    editarCustoFixo(id) {
-        const c = S.fixos.find(x => x.id === id);
-        if (!c) return;
-        document.getElementById('modal-cf-titulo').textContent = 'Editar Despesa';
-        document.getElementById('mcf-id').value = c.id;
-        document.getElementById('mcf-desc').value = c.descricao;
-        document.getElementById('mcf-valor').value = c.valor;
-        document.getElementById('modal-custo-fixo').classList.remove('hidden');
-    },
-
-    async salvarCustoFixo() {
-        const desc = document.getElementById('mcf-desc').value.trim();
-        const val = parseFloat(document.getElementById('mcf-valor').value);
-        if (!desc || isNaN(val)) { alert('Preencha todos os campos.'); return; }
-        const id = document.getElementById('mcf-id').value || uid();
-        const obj = { id, descricao: desc, valor: val };
-        const idx = S.fixos.findIndex(c => c.id === id);
-        if (idx >= 0) S.fixos[idx] = obj; else S.fixos.push(obj);
-        lsSave('fixos', S.fixos);
-        this.fecharModal('modal-custo-fixo');
-        this._renderCustosFixos();
-        await cloudUpsert('custos_fixos', obj);
-    },
-
-    async excluirCustoFixo(id) {
-        if (!confirm('Excluir esta despesa?')) return;
-        S.fixos = S.fixos.filter(c => c.id !== id);
-        lsSave('fixos', S.fixos);
-        this._renderCustosFixos();
-        await cloudDelete('custos_fixos', id);
-    },
-
-    async salvarConfig() {
-        S.cfg.horas = parseFloat(document.getElementById('cfg-horas').value)||139.41;
-        S.cfg.imposto = parseFloat(document.getElementById('cfg-imposto').value)||6;
-        S.cfg.cartao = parseFloat(document.getElementById('cfg-cartao').value)||3.5;
-        S.cfg.lucro = parseFloat(document.getElementById('cfg-lucro').value)||30;
-        lsSave('cfg', S.cfg);
-        this._renderCustosFixos();
-        await cloudUpsertConfig();
-    },
-
-    // ── MODAIS ──
-    fecharModal(id) { document.getElementById(id).classList.add('hidden'); },
-
-    _showToast(msg) {
-        const t = document.createElement('div');
-        t.textContent = msg;
-        t.className = 'fixed bottom-6 right-6 bg-verde-escuro text-white px-5 py-3 rounded-xl shadow-lg text-sm z-50';
-        document.body.appendChild(t);
-        setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(()=>t.remove(),300); }, 2500);
-    },
-
-    // ── GRÁFICO EVOLUÇÃO ──
-    _graficoInstance: null,
-    renderGrafico() {
-        const meses = [];
-        const hoje = new Date();
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-            meses.push(d.toISOString().slice(0, 7));
-        }
-        const totalFixo = S.fixos.reduce((a,c) => a + Number(c.valor), 0);
-        const labels = meses.map(m => { const [y,mo] = m.split('-'); return ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)-1] + '/' + y.slice(2); });
-        const fat   = meses.map(m => S.regs.filter(r=>r.data?.startsWith(m)).reduce((a,r)=>a+Number(r.preco),0));
-        const custoV= meses.map(m => S.regs.filter(r=>r.data?.startsWith(m)).reduce((a,r)=>a+Number(r.custo_insumos||0)+Number(r.custo_tempo||0),0));
-        const lucro = meses.map((m,i) => fat[i] - custoV[i] - totalFixo);
-
-        const ctx = document.getElementById('grafico-evolucao');
-        if (!ctx) return;
-        if (this._graficoInstance) { this._graficoInstance.destroy(); }
-        this._graficoInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels,
-                datasets: [
-                    { label: 'Faturamento', data: fat, backgroundColor: '#899173cc', borderRadius: 4 },
-                    { label: 'Custo Variável', data: custoV, backgroundColor: '#B2676877', borderRadius: 4 },
-                    { label: 'Lucro Operacional', data: lucro, backgroundColor: '#5F674C99', borderRadius: 4, type: 'line', fill: false, borderColor: '#5F674C', tension: 0.3, pointBackgroundColor: '#5F674C' }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 }, color: '#4B423A', boxWidth: 12 } }, tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': R$ ' + Number(ctx.parsed.y).toFixed(2).replace('.',',') } } },
-                scales: { y: { ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR'), font: { size: 10 } }, grid: { color: '#E2D5C344' } }, x: { grid: { display: false } } }
-            }
-        });
-    },
-
-    // ── ANÁLISE DE PREÇOS ──
-    renderAnalisePrecos() {
-        const el = document.getElementById('analise-precos');
-        if (!el) return;
-        const analise = S.procs.map(p => {
-            const regsProc = S.regs.filter(r => r.proc_id === p.id);
-            if (!regsProc.length) return null;
-            const mediaCobrada = regsProc.reduce((a,r)=>a+Number(r.preco),0) / regsProc.length;
-            const diff = mediaCobrada - Number(p.preco||0);
-            return { nome: p.nome, sugerido: Number(p.preco||0), mediaCobrada, diff, qtd: regsProc.length };
-        }).filter(Boolean);
-
-        if (!analise.length) { el.innerHTML = '<p class="text-sm text-texto/40 text-center py-4">Registre atendimentos para ver a análise.</p>'; return; }
-
-        el.innerHTML = `<table class="w-full text-sm">
-            <thead><tr class="text-xs uppercase text-verde-oliva border-b border-bege-pedra">
-                <th class="pb-2 text-left">Procedimento</th>
-                <th class="pb-2 text-right">Sugerido</th>
-                <th class="pb-2 text-right">Média Cobrada</th>
-                <th class="pb-2 text-center">Atend.</th>
-                <th class="pb-2 text-right">Diferença</th>
-            </tr></thead>
-            <tbody>${analise.map(a => `<tr class="border-b border-bege-pedra/40 hover:bg-fundo-principal/50">
-                <td class="py-2 font-medium">${a.nome}</td>
-                <td class="py-2 text-right text-texto/60">${brl(a.sugerido)}</td>
-                <td class="py-2 text-right font-semibold text-verde-escuro">${brl(a.mediaCobrada)}</td>
-                <td class="py-2 text-center text-xs text-texto/50">${a.qtd}×</td>
-                <td class="py-2 text-right font-semibold ${a.diff>=0?'text-verde-escuro':'text-rose'}">${a.diff>=0?'+':''}${brl(a.diff)}</td>
-            </tr>`).join('')}</tbody>
-        </table>`;
-    },
-
-    // ── PDF / IMPRESSÃO ──
-    imprimirDRE() {
-        const mes = document.getElementById('filtro-mes').value;
-        const [y, m] = mes.split('-');
-        const nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(m)-1];
-        document.title = `DRE ${nomeMes} ${y} — Dra Mariana Leite`;
-        window.print();
-        setTimeout(() => document.title = 'Dra Mariana Leite | Gestão Financeira', 1000);
-    },
-
-    // ── WHATSAPP ESTOQUE BAIXO ──
-    alertarWhatsApp() {
-        const baixos = S.insumos.filter(i => Number(i.estoque_min||0) > 0 && Number(i.estoque||0) <= Number(i.estoque_min||0));
-        if (!baixos.length) { this._showToast('Nenhum insumo com estoque abaixo do mínimo!'); return; }
-        const linhas = baixos.map(i => `• ${i.nome}: ${Number(i.estoque||0)} ${i.unidade||'un'} (mín: ${i.estoque_min})`).join('\n');
-        const msg = encodeURIComponent(`🔴 *ALERTA DE ESTOQUE BAIXO — Clínica*\n\nOs seguintes insumos precisam de reposição:\n\n${linhas}\n\nFavor providenciar a compra.`);
-        window.open(`https://wa.me/?text=${msg}`, '_blank');
-    }
-};
-
-// ── DADOS PADRÃO ─────────────────────────────────────────────────
-function insumosPadrao() {
-    return [
-        { id: uid(), categoria:'Descartáveis', nome:'Luva Descartável', unidade:'Par', custo:0.46, estoque:100, estoque_min:20 },
-        { id: uid(), categoria:'Descartáveis', nome:'Lençol de Maca', unidade:'Unidade', custo:3.50, estoque:50, estoque_min:10 },
-        { id: uid(), categoria:'Cosméticos', nome:'Água Micelar', unidade:'Porção', custo:0.14, estoque:200, estoque_min:30 },
-        { id: uid(), categoria:'Químicos', nome:'Toxina Botulínica 100UI', unidade:'Ampola', custo:455.00, estoque:5, estoque_min:2 },
-        { id: uid(), categoria:'Químicos', nome:'Soro Fisiológico', unidade:'Ampola', custo:0.11, estoque:50, estoque_min:10 },
-        { id: uid(), categoria:'Descartáveis', nome:'Seringa 1ml', unidade:'Unidade', custo:1.20, estoque:80, estoque_min:15 },
-        { id: uid(), categoria:'Descartáveis', nome:'Agulha 30G', unidade:'Unidade', custo:0.35, estoque:80, estoque_min:15 }
-    ];
+async function loadAll() {
+  setSyncStatus('Sincronizando…','text-yellow-500');
+  S.insumos=lsLoad('insumos'); S.fixos=lsLoad('fixos'); S.procs=lsLoad('procs');
+  S.regs=lsLoad('regs'); S.cfg=lsLoadObj('cfg',{horas:139.41,imposto:6,cartao:3.5,lucro:30});
+  S.pacientes=lsLoad('pacientes'); S.recebimentos=lsLoad('recebimentos');
+  S.despesas=lsLoad('despesas'); S.compras=lsLoad('compras'); S.metas=lsLoad('metas');
+  const tables=[['insumos','insumos'],['custos_fixos','fixos'],['procedimentos','procs'],
+    ['registros','regs'],['pacientes','pacientes'],['recebimentos','recebimentos'],
+    ['despesas_variaveis','despesas'],['compras_estoque','compras'],['metas_mensais','metas']];
+  for(const [tbl,key] of tables){
+    const d=await cloudLoad(tbl);
+    if(d){ S[key]=d; lsSave(key,d); }
+  }
+  const cfgR=await sb.from('config_clinica').select('*').eq('user_id',S.user.id).maybeSingle();
+  if(cfgR.data){ S.cfg=cfgR.data; lsSave('cfg',cfgR.data); }
+  setSyncStatus('✓ Sincronizado','text-green-500');
+  setTimeout(()=>setSyncStatus(''),3000);
 }
-function fixosPadrao() {
-    return [
-        { id: uid(), descricao:'Pró-labore + Folha', valor:5000 },
-        { id: uid(), descricao:'Aluguel e Condomínio', valor:2500 },
-        { id: uid(), descricao:'Contabilidade e Sistemas', valor:550 },
-        { id: uid(), descricao:'Água, Luz e Internet', valor:450 }
-    ];
+
+function showApp() {
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('appShell').classList.remove('hidden');
+  goTo('dashboard');
 }
+
+function goTo(page) {
+  currentPage=page;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const nav=document.getElementById('nav-'+page);
+  if(nav) nav.classList.add('active');
+  const pages={dashboard:renderDashboard,procedimentos:renderProcedimentos,estoque:renderEstoque,
+    atendimentos:renderAtendimentos,pacientes:renderPacientes,financeiro:renderFinanceiro,
+    relatorios:renderRelatorios,configuracoes:renderConfiguracoes};
+  if(pages[page]) pages[page]();
+}
+
+function calcCustoMinuto() {
+  const totalFixo=S.fixos.reduce((s,f)=>s+(+f.valor||0),0);
+  const min=(S.cfg.horas||139.41)*60;
+  return min>0?totalFixo/min:0;
+}
+
+function calcDRE(mes) {
+  const regs=S.regs.filter(r=>r.data&&r.data.startsWith(mes));
+  const receita=regs.reduce((s,r)=>s+(+r.preco||0),0);
+  const custoInsumos=regs.reduce((s,r)=>s+(+r.custo_insumos||0),0);
+  const custoTempo=regs.reduce((s,r)=>s+(+r.custo_tempo||0),0);
+  const lucroBruto=receita-custoInsumos-custoTempo;
+  const totalFixo=S.fixos.reduce((s,f)=>s+(+f.valor||0),0);
+  const totalDespesas=S.despesas.filter(d=>d.data&&d.data.startsWith(mes)).reduce((s,d)=>s+(+d.valor||0),0);
+  const resultado=lucroBruto-totalFixo-totalDespesas;
+  const margem=receita>0?(resultado/receita)*100:0;
+  return {receita,custoInsumos,custoTempo,lucroBruto,totalFixo,totalDespesas,resultado,margem,atendimentos:regs.length};
+}
+
+function calcPreco(custoInsumos,minutos) {
+  const cm=calcCustoMinuto();
+  const custoTempo=cm*minutos;
+  const custoTotal=custoInsumos+custoTempo;
+  const cfg=S.cfg;
+  const pI=+(cfg.imposto||6), pC=+(cfg.cartao||3.5), pL=+(cfg.lucro||30);
+  const divisor=1-(pI+pC+pL)/100;
+  const preco=divisor>0?custoTotal/divisor:custoTotal*2;
+  return {custoInsumos,custoTempo,custoTotal,preco,pctImposto:pI,pctCartao:pC,pctLucro:pL,
+    vlrImposto:preco*(pI/100),vlrCartao:preco*(pC/100),vlrLucro:preco*(pL/100)};
+}
+
+function escHtml(s){
+  if(!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════ DASHBOARD ══════════════════
+function renderDashboard() {
+  const mes=mesAtual();
+  const dre=calcDRE(mes);
+  const meta=S.metas.find(m=>m.mes===mes)||{faturamento:0,atendimentos:0};
+  const pctF=meta.faturamento>0?Math.min((dre.receita/meta.faturamento)*100,100):0;
+  const pctA=meta.atendimentos>0?Math.min((dre.atendimentos/meta.atendimentos)*100,100):0;
+  const cm=calcCustoMinuto();
+  const estoqueAlerta=S.insumos.filter(i=>(+i.estoque||0)<=(+i.estoque_min||0)&&(+i.estoque_min||0)>0);
+  const recPendentes=S.recebimentos.filter(r=>r.status==='pendente'&&r.data_prevista<=today());
+
+  document.getElementById('mainContent').innerHTML=`
+  <div class="space-y-5">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <div><h2 class="text-xl font-bold text-gray-800">Dashboard</h2><p class="text-sm text-gray-500">${nomeMes(mes)}</p></div>
+      <button onclick="window.print()" class="btn btn-ghost btn-sm no-print">🖨 Exportar PDF</button>
+    </div>
+    ${meta.faturamento>0||meta.atendimentos>0?`
+    <div class="card">
+      <div class="text-sm font-semibold text-gray-700 mb-3">🎯 Metas do Mês</div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <div class="flex justify-between text-xs mb-1"><span>Faturamento</span><span class="font-bold">${fmtBRL(dre.receita)} / ${fmtBRL(meta.faturamento)}</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pctF}%;background:${pctF>=100?'#10b981':'#e11d48'}"></div></div>
+          <div class="text-xs text-right mt-1 ${pctF>=100?'text-green-600':'text-gray-500'}">${pctF.toFixed(0)}% ${pctF>=100?'✓':''}</div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1"><span>Atendimentos</span><span class="font-bold">${dre.atendimentos} / ${meta.atendimentos}</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pctA}%;background:${pctA>=100?'#10b981':'#e11d48'}"></div></div>
+          <div class="text-xs text-right mt-1 ${pctA>=100?'text-green-600':'text-gray-500'}">${pctA.toFixed(0)}% ${pctA>=100?'✓':''}</div>
+        </div>
+      </div>
+    </div>`:''}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="metric-card">
+        <div class="text-xs text-gray-500 mb-1">Receita Bruta ${tip('Soma de todos os atendimentos do mês')}</div>
+        <div class="text-lg font-bold text-gray-800">${fmtBRL(dre.receita)}</div>
+        <div class="text-xs text-gray-400">${dre.atendimentos} atend.</div>
+      </div>
+      <div class="metric-card" style="border-left-color:#10b981">
+        <div class="text-xs text-gray-500 mb-1">Lucro Bruto ${tip('Receita − Custo Insumos − Custo Tempo')}</div>
+        <div class="text-lg font-bold text-green-600">${fmtBRL(dre.lucroBruto)}</div>
+        <div class="text-xs text-gray-400">${fmtPct(dre.receita>0?(dre.lucroBruto/dre.receita)*100:0)} receita</div>
+      </div>
+      <div class="metric-card" style="border-left-color:${dre.resultado>=0?'#3b82f6':'#ef4444'}">
+        <div class="text-xs text-gray-500 mb-1">Resultado ${tip('Lucro Bruto − Custos Fixos − Despesas Variáveis')}</div>
+        <div class="text-lg font-bold ${dre.resultado>=0?'text-blue-600':'text-red-600'}">${fmtBRL(dre.resultado)}</div>
+        <div class="text-xs text-gray-400">Margem ${fmtPct(dre.margem)}</div>
+      </div>
+      <div class="metric-card" style="border-left-color:#8b5cf6">
+        <div class="text-xs text-gray-500 mb-1">Custo/Min ${tip('Total Fixos ÷ (Horas Produtivas × 60)\nRepresenta quanto custa cada minuto da Dra trabalhando')}</div>
+        <div class="text-lg font-bold text-purple-600">${fmtBRL(cm)}</div>
+        <div class="text-xs text-gray-400">${S.cfg.horas||139.41}h/mês</div>
+      </div>
+    </div>
+    <div class="card" id="dreDetalhado">
+      <div class="section-title">📊 DRE — ${nomeMes(mes)}</div>
+      <table class="w-full text-sm">
+        <tbody>
+          <tr class="border-b"><td class="py-2 text-gray-600">Receita Bruta</td><td class="text-right font-semibold">${fmtBRL(dre.receita)}</td></tr>
+          <tr class="border-b"><td class="py-2 text-gray-500 pl-4">(-) Custo de Insumos ${tip('Soma dos insumos consumidos em cada atendimento, conforme Ficha Técnica')}</td><td class="text-right text-red-500">(${fmtBRL(dre.custoInsumos)})</td></tr>
+          <tr class="border-b"><td class="py-2 text-gray-500 pl-4">(-) Custo de Tempo ${tip('Custo/Minuto × Tempo de cada procedimento\nCusto/Min = Total Fixos ÷ (Horas Prod. × 60)')}</td><td class="text-right text-red-500">(${fmtBRL(dre.custoTempo)})</td></tr>
+          <tr class="border-b bg-green-50"><td class="py-2 font-bold text-green-700">= Lucro Bruto</td><td class="text-right font-bold text-green-700">${fmtBRL(dre.lucroBruto)}</td></tr>
+          <tr class="border-b"><td class="py-2 text-gray-500 pl-4">(-) Custos Fixos ${tip('Despesas fixas mensais independentes do volume: aluguel, salários, plataformas, etc.')}</td><td class="text-right text-red-500">(${fmtBRL(dre.totalFixo)})</td></tr>
+          <tr class="border-b"><td class="py-2 text-gray-500 pl-4">(-) Despesas Variáveis ${tip('Gastos variáveis do mês: marketing, materiais, transporte, etc.')}</td><td class="text-right text-red-500">(${fmtBRL(dre.totalDespesas)})</td></tr>
+          <tr class="bg-rose-50"><td class="py-2 font-bold text-rose-700">= Resultado Operacional</td><td class="text-right font-bold ${dre.resultado>=0?'text-green-700':'text-red-700'}">${fmtBRL(dre.resultado)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    ${estoqueAlerta.length>0||recPendentes.length>0?`
+    <div class="card border-l-4 border-yellow-400">
+      <div class="text-sm font-semibold mb-2">⚠️ Alertas</div>
+      ${estoqueAlerta.map(i=>`<div class="text-sm text-yellow-700 mb-1">📦 Estoque baixo: <strong>${escHtml(i.nome)}</strong> (${i.estoque||0} ${i.unidade||'un'})</div>`).join('')}
+      ${recPendentes.map(r=>`<div class="text-sm text-red-600 mb-1">💰 Recebimento vencido: <strong>${escHtml(r.descricao)}</strong> — ${fmtBRL(r.valor)} (previsto ${r.data_prevista})</div>`).join('')}
+    </div>`:''}
+    <div class="card">
+      <div class="section-title">📈 Evolução 6 Meses</div>
+      <canvas id="grafico" height="120"></canvas>
+    </div>
+  </div>`;
+  renderGrafico();
+}
+
+function renderGrafico() {
+  if(chartInstance){ chartInstance.destroy(); chartInstance=null; }
+  const meses=[];
+  for(let i=5;i>=0;i--){ const d=new Date(); d.setMonth(d.getMonth()-i); meses.push(d.toISOString().slice(0,7)); }
+  const labels=meses.map(m=>new Date(m+'-02').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}));
+  const receitas=meses.map(m=>calcDRE(m).receita);
+  const resultados=meses.map(m=>calcDRE(m).resultado);
+  const ctx=document.getElementById('grafico');
+  if(!ctx) return;
+  chartInstance=new Chart(ctx,{type:'bar',data:{labels,datasets:[
+    {label:'Receita',data:receitas,backgroundColor:'#fecdd3',borderColor:'#e11d48',borderWidth:2,borderRadius:6},
+    {label:'Resultado',data:resultados,type:'line',backgroundColor:'#bbf7d0',borderColor:'#10b981',borderWidth:2,yAxisID:'y1',tension:.3,pointRadius:4}
+  ]},options:{responsive:true,plugins:{legend:{position:'top'}},
+    scales:{y:{ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR')}},y1:{position:'right',grid:{display:false},ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR')}}}}});
+}
+
+// ══════════════════ PROCEDIMENTOS ══════════════════
+function renderProcedimentos() {
+  const cm=calcCustoMinuto();
+  const totalFixo=S.fixos.reduce((s,f)=>s+(+f.valor||0),0);
+  document.getElementById('mainContent').innerHTML=`
+  <div class="space-y-5">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-gray-800">💉 Procedimentos & Precificação</h2>
+      <button onclick="abrirModalProc()" class="btn btn-primary btn-sm no-print">+ Novo</button>
+    </div>
+    <div class="card bg-rose-50 border border-rose-200 text-sm space-y-1">
+      <div><strong>Fórmula de Precificação:</strong> Preço = Custo Total ÷ (1 − Impostos% − Cartão% − Lucro%)</div>
+      <div class="text-gray-600">Custo Total = Custo dos Insumos + (Custo/Min × Tempo do Procedimento)</div>
+      <div class="text-gray-600">Custo/Minuto atual: <strong>${fmtBRL(cm)}/min</strong> | Fixos: ${fmtBRL(totalFixo)} | ${S.cfg.horas||139.41}h × 60min</div>
+      <div class="text-gray-500 text-xs">Divisor: 1 − (${S.cfg.imposto||6}% + ${S.cfg.cartao||3.5}% + ${S.cfg.lucro||30}%) = ${((1-(+(S.cfg.imposto||6)++(S.cfg.cartao||3.5)++(S.cfg.lucro||30))/100)*100).toFixed(1)}% restante para cobrir custos</div>
+    </div>
+    <div id="listaProcs" class="space-y-3"></div>
+  </div>
+  <div id="modalProc" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-screen overflow-y-auto p-5">
+      <h3 class="font-bold text-lg mb-4" id="modalProcTitle">Procedimento</h3>
+      <div class="space-y-3" id="modalProcForm"></div>
+      <div class="flex gap-2 mt-4 justify-end">
+        <button onclick="fecharModalProc()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="salvarProc()" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>`;
+  renderListaProcs();
+}
+
+function renderListaProcs() {
+  const el=document.getElementById('listaProcs');
+  if(!el) return;
+  if(!S.procs.length){ el.innerHTML='<div class="text-center text-gray-400 py-8">Nenhum procedimento cadastrado</div>'; return; }
+  el.innerHTML=S.procs.map(p=>{
+    const ficha=Array.isArray(p.ficha)?p.ficha:[];
+    const custoIns=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0);
+    const calc=calcPreco(custoIns,+p.tempo||0);
+    const preco=+p.preco||0;
+    const diff=preco-calc.preco;
+    const pctCustoIns=calc.preco>0?(calc.custoInsumos/calc.preco)*100:0;
+    const pctCustoTempo=calc.preco>0?(calc.custoTempo/calc.preco)*100:0;
+    return `<div class="card">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1">
+          <div class="font-semibold text-gray-800">${escHtml(p.nome)}</div>
+          <div class="text-xs text-gray-500">${p.tempo||0} min</div>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <div class="font-bold text-gray-800">${fmtBRL(preco)}</div>
+          <div class="text-xs ${diff<0?'text-red-500':'text-green-600'}">${diff<0?'⚠':'✓'} sugerido ${fmtBRL(calc.preco)}</div>
+        </div>
+        <div class="flex gap-1 no-print">
+          <button onclick="abrirModalProc('${p.id}')" class="btn btn-sm btn-secondary">✏</button>
+          <button onclick="deletarProc('${p.id}')" class="btn btn-sm btn-danger">🗑</button>
+        </div>
+      </div>
+      <div class="mt-3 bg-gray-50 rounded-xl p-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+        <div class="flex justify-between"><span class="text-gray-500">Custo Insumos</span><span><strong>${fmtBRL(calc.custoInsumos)}</strong> <span class="text-gray-400">${fmtPct(pctCustoIns)}</span></span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Custo Tempo ${tip(`Custo/Min ${fmtBRL(calcCustoMinuto())} × ${p.tempo||0}min`)}</span><span><strong>${fmtBRL(calc.custoTempo)}</strong> <span class="text-gray-400">${fmtPct(pctCustoTempo)}</span></span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Impostos (${fmtPct(calc.pctImposto)})</span><span>${fmtBRL(calc.vlrImposto)}</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Taxa Cartão (${fmtPct(calc.pctCartao)})</span><span>${fmtBRL(calc.vlrCartao)}</span></div>
+        <div class="col-span-2 border-t pt-1 flex justify-between font-semibold text-green-700">
+          <span>Lucro Líquido (${fmtPct(calc.pctLucro)}) ${tip('Percentual do preço final que representa lucro líquido após todos os custos e tributos')}</span>
+          <span>${fmtBRL(calc.vlrLucro)}</span>
+        </div>
+        <div class="col-span-2 border-t pt-1 flex justify-between font-bold text-rose-700">
+          <span>💡 Preço Sugerido</span><span>${fmtBRL(calc.preco)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let editingProcId=null, fichaTemp=[];
+function abrirModalProc(id=null) {
+  editingProcId=id;
+  const p=id?S.procs.find(x=>x.id===id):null;
+  fichaTemp=p&&Array.isArray(p.ficha)?JSON.parse(JSON.stringify(p.ficha)):[];
+  document.getElementById('modalProcTitle').textContent=id?'Editar Procedimento':'Novo Procedimento';
+  renderFormProc(p);
+  document.getElementById('modalProc').classList.remove('hidden');
+}
+function fecharModalProc(){ document.getElementById('modalProc').classList.add('hidden'); }
+
+function renderFormProc(p) {
+  document.getElementById('modalProcForm').innerHTML=`
+    <div><label class="text-sm font-medium text-gray-700">Nome</label><input id="fp_nome" class="inp mt-1" value="${p?escHtml(p.nome):''}"></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="text-sm font-medium text-gray-700">Tempo (min)</label><input id="fp_tempo" type="number" class="inp mt-1" value="${p?p.tempo:''}" oninput="atualizarSim()"></div>
+      <div><label class="text-sm font-medium text-gray-700">Preço Cobrado (R$)</label><input id="fp_preco" type="number" class="inp mt-1" value="${p?p.preco:''}"></div>
+    </div>
+    <div>
+      <div class="flex justify-between mb-2"><span class="text-sm font-medium text-gray-700">Ficha Técnica</span><button onclick="adicionarFichaItem()" class="btn btn-sm btn-ghost">+ Insumo</button></div>
+      <div id="fichaLista" class="space-y-2"></div>
+    </div>
+    <div id="simPreco" class="bg-rose-50 rounded-xl p-3 text-xs"></div>`;
+  renderFichaLista(); atualizarSim();
+}
+function renderFichaLista() {
+  const el=document.getElementById('fichaLista');
+  if(!el) return;
+  el.innerHTML=fichaTemp.map((f,i)=>`
+    <div class="flex gap-2 items-center">
+      <select class="inp inp-sm flex-1" onchange="fichaTemp[${i}].insumo_id=this.value;atualizarSim()">
+        <option value="">Selecione insumo</option>
+        ${S.insumos.map(ins=>`<option value="${ins.id}"${ins.id===f.insumo_id?' selected':''}>${escHtml(ins.nome)} (${fmtBRL(ins.custo)}/${ins.unidade||'un'})</option>`).join('')}
+      </select>
+      <input type="number" step="0.01" value="${f.qtd||''}" class="inp inp-sm w-20" placeholder="Qtd" oninput="fichaTemp[${i}].qtd=+this.value;atualizarSim()">
+      <button onclick="fichaTemp.splice(${i},1);renderFichaLista();atualizarSim()" class="btn btn-sm btn-danger">✕</button>
+    </div>`).join('')||'<div class="text-xs text-gray-400">Nenhum insumo</div>';
+}
+function adicionarFichaItem(){ fichaTemp.push({insumo_id:'',qtd:0}); renderFichaLista(); }
+function atualizarSim() {
+  const el=document.getElementById('simPreco'); if(!el) return;
+  const tempo=+(document.getElementById('fp_tempo')||{value:0}).value||0;
+  const custoIns=fichaTemp.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0);
+  const c=calcPreco(custoIns,tempo);
+  el.innerHTML=`<div class="font-semibold mb-2 text-gray-700">💡 Simulador de Preço</div>
+    <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+      <span class="text-gray-500">Custo insumos:</span><span>${fmtBRL(c.custoInsumos)}</span>
+      <span class="text-gray-500">Custo tempo (${tempo}min):</span><span>${fmtBRL(c.custoTempo)}</span>
+      <span class="text-gray-500">Impostos (${fmtPct(c.pctImposto)}):</span><span>${fmtBRL(c.vlrImposto)}</span>
+      <span class="text-gray-500">Taxa cartão (${fmtPct(c.pctCartao)}):</span><span>${fmtBRL(c.vlrCartao)}</span>
+      <span class="text-gray-500">Lucro (${fmtPct(c.pctLucro)}):</span><span class="text-green-600 font-bold">${fmtBRL(c.vlrLucro)}</span>
+      <span class="font-bold text-rose-700 border-t pt-1 col-span-1">Preço sugerido:</span><span class="font-bold text-rose-700 border-t pt-1">${fmtBRL(c.preco)}</span>
+    </div>`;
+}
+async function salvarProc() {
+  const nome=document.getElementById('fp_nome').value.trim();
+  if(!nome) return alert('Informe o nome');
+  const id=editingProcId||uid();
+  const obj={id,nome,tempo:+(document.getElementById('fp_tempo').value)||0,
+    preco:+(document.getElementById('fp_preco').value)||0,
+    ficha:fichaTemp.filter(f=>f.insumo_id)};
+  S.procs=S.procs.filter(p=>p.id!==id); S.procs.push(obj);
+  lsSave('procs',S.procs); await cloudUpsert('procedimentos',obj);
+  fecharModalProc(); renderProcedimentos();
+}
+async function deletarProc(id) {
+  if(!confirm('Excluir procedimento?')) return;
+  S.procs=S.procs.filter(p=>p.id!==id); lsSave('procs',S.procs);
+  await cloudDelete('procedimentos',id); renderListaProcs();
+}
+
+// ══════════════════ ESTOQUE ══════════════════
+function renderEstoque() {
+  document.getElementById('mainContent').innerHTML=`
+  <div class="space-y-5">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-gray-800">📦 Estoque</h2>
+      <div class="flex gap-2 no-print">
+        <button onclick="abrirModalCompra()" class="btn btn-ghost btn-sm">🛒 Registrar Compra</button>
+        <button onclick="abrirModalInsumo()" class="btn btn-primary btn-sm">+ Insumo</button>
+      </div>
+    </div>
+    <div class="card overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead><tr class="table-header"><th class="p-2 text-left">Insumo</th><th class="p-2">Categoria</th><th class="p-2">Custo/Un</th><th class="p-2">Estoque</th><th class="p-2">Mín</th><th class="p-2">Status</th><th class="p-2 no-print"></th></tr></thead>
+        <tbody id="tbodyInsumos"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="text-sm font-semibold text-gray-700 mb-3">🛒 Últimas Compras</div>
+      <div id="listaCompras"></div>
+    </div>
+  </div>
+  <div id="modalInsumo" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+      <h3 class="font-bold text-lg mb-4" id="modalInsumoTitle">Insumo</h3>
+      <div class="space-y-3">
+        <input id="fi_nome" class="inp" placeholder="Nome">
+        <div class="grid grid-cols-2 gap-3">
+          <input id="fi_cat" class="inp" placeholder="Categoria">
+          <input id="fi_unidade" class="inp" placeholder="Unidade (ml, un, g)">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="text-xs text-gray-500">Custo/Un (R$)</label><input id="fi_custo" type="number" step="0.0001" class="inp mt-1"></div>
+          <div><label class="text-xs text-gray-500">Estoque atual</label><input id="fi_estoque" type="number" step="0.01" class="inp mt-1"></div>
+        </div>
+        <div><label class="text-xs text-gray-500">Estoque mínimo (alerta)</label><input id="fi_min" type="number" step="0.01" class="inp mt-1"></div>
+      </div>
+      <div class="flex gap-2 mt-4 justify-end">
+        <button onclick="fecharModalInsumo()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="salvarInsumo()" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>
+  <div id="modalCompra" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+      <h3 class="font-bold text-lg mb-4">Registrar Compra de Estoque</h3>
+      <div class="space-y-3">
+        <div><label class="text-xs text-gray-500">Data</label><input id="fc_data" type="date" class="inp mt-1" value="${today()}"></div>
+        <div><label class="text-xs text-gray-500">Insumo</label>
+          <select id="fc_insumo" class="inp mt-1"><option value="">Selecione…</option>${S.insumos.map(i=>`<option value="${i.id}">${escHtml(i.nome)}</option>`).join('')}</select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="text-xs text-gray-500">Quantidade</label><input id="fc_qtd" type="number" step="0.01" class="inp mt-1"></div>
+          <div><label class="text-xs text-gray-500">Valor Total (R$)</label><input id="fc_valor" type="number" step="0.01" class="inp mt-1"></div>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-4 justify-end">
+        <button onclick="fecharModalCompra()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="salvarCompra()" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>`;
+  renderTbodyInsumos(); renderListaCompras();
+}
+function renderTbodyInsumos() {
+  const tb=document.getElementById('tbodyInsumos'); if(!tb) return;
+  if(!S.insumos.length){ tb.innerHTML=`<tr><td colspan="7" class="text-center py-6 text-gray-400">Nenhum insumo cadastrado</td></tr>`; return; }
+  tb.innerHTML=S.insumos.map(i=>{
+    const baixo=(+i.estoque||0)<=(+i.estoque_min||0)&&(+i.estoque_min||0)>0;
+    return `<tr class="border-b hover:bg-gray-50">
+      <td class="p-2 font-medium">${escHtml(i.nome)}</td>
+      <td class="p-2 text-center text-xs text-gray-500">${i.categoria||'-'}</td>
+      <td class="p-2 text-center">${fmtBRL(i.custo)}</td>
+      <td class="p-2 text-center">${i.estoque||0} ${i.unidade||''}</td>
+      <td class="p-2 text-center text-gray-400">${i.estoque_min||0}</td>
+      <td class="p-2 text-center"><span class="tag ${baixo?'tag-red':'tag-green'}">${baixo?'⚠ Baixo':'OK'}</span></td>
+      <td class="p-2 text-center no-print">
+        <button onclick="abrirModalInsumo('${i.id}')" class="btn btn-sm btn-secondary">✏</button>
+        <button onclick="deletarInsumo('${i.id}')" class="btn btn-sm btn-danger">🗑</button>
+      </td></tr>`;
+  }).join('');
+}
+function renderListaCompras() {
+  const el=document.getElementById('listaCompras'); if(!el) return;
+  const last=[...S.compras].sort((a,b)=>b.data>a.data?1:-1).slice(0,10);
+  if(!last.length){ el.innerHTML='<div class="text-xs text-gray-400">Nenhuma compra registrada</div>'; return; }
+  el.innerHTML=`<table class="w-full text-sm"><thead><tr class="table-header"><th class="p-2 text-left">Data</th><th class="p-2 text-left">Insumo</th><th class="p-2">Qtd</th><th class="p-2">Valor</th></tr></thead><tbody>
+  ${last.map(c=>`<tr class="border-b"><td class="p-2 text-xs">${c.data}</td><td class="p-2">${escHtml(c.insumo_nome||'-')}</td><td class="p-2 text-center">${c.qtd}</td><td class="p-2 text-center">${fmtBRL(c.valor_total)}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+let editingInsumoId=null;
+function abrirModalInsumo(id=null) {
+  editingInsumoId=id; const i=id?S.insumos.find(x=>x.id===id):null;
+  document.getElementById('modalInsumoTitle').textContent=id?'Editar Insumo':'Novo Insumo';
+  ['fi_nome','fi_cat','fi_unidade','fi_custo','fi_estoque','fi_min'].forEach(fid=>{ const el=document.getElementById(fid); if(el) el.value=''; });
+  if(i){ document.getElementById('fi_nome').value=i.nome||''; document.getElementById('fi_cat').value=i.categoria||'';
+    document.getElementById('fi_unidade').value=i.unidade||''; document.getElementById('fi_custo').value=i.custo||'';
+    document.getElementById('fi_estoque').value=i.estoque||''; document.getElementById('fi_min').value=i.estoque_min||''; }
+  document.getElementById('modalInsumo').classList.remove('hidden');
+}
+function fecharModalInsumo(){ document.getElementById('modalInsumo').classList.add('hidden'); }
+async function salvarInsumo() {
+  const nome=document.getElementById('fi_nome').value.trim(); if(!nome) return alert('Informe o nome');
+  const id=editingInsumoId||uid();
+  const obj={id,nome,categoria:document.getElementById('fi_cat').value.trim()||'Geral',
+    unidade:document.getElementById('fi_unidade').value.trim(),
+    custo:+document.getElementById('fi_custo').value||0,
+    estoque:+document.getElementById('fi_estoque').value||0,
+    estoque_min:+document.getElementById('fi_min').value||0};
+  S.insumos=S.insumos.filter(i=>i.id!==id); S.insumos.push(obj);
+  lsSave('insumos',S.insumos); await cloudUpsert('insumos',obj);
+  fecharModalInsumo(); renderTbodyInsumos();
+}
+async function deletarInsumo(id) {
+  if(!confirm('Excluir insumo?')) return;
+  S.insumos=S.insumos.filter(i=>i.id!==id); lsSave('insumos',S.insumos);
+  await cloudDelete('insumos',id); renderTbodyInsumos();
+}
+function abrirModalCompra(){ document.getElementById('modalCompra').classList.remove('hidden'); }
+function fecharModalCompra(){ document.getElementById('modalCompra').classList.add('hidden'); }
+async function salvarCompra() {
+  const data=document.getElementById('fc_data').value;
+  const insumoId=document.getElementById('fc_insumo').value;
+  const qtd=+document.getElementById('fc_qtd').value||0;
+  const valor=+document.getElementById('fc_valor').value||0;
+  if(!data||!insumoId||!qtd) return alert('Preencha todos os campos');
+  const ins=S.insumos.find(i=>i.id===insumoId);
+  const id=uid();
+  const obj={id,data,insumo_id:insumoId,insumo_nome:ins?ins.nome:'',qtd,valor_total:valor};
+  S.compras.push(obj); lsSave('compras',S.compras); await cloudUpsert('compras_estoque',obj);
+  if(ins){ ins.estoque=(+ins.estoque||0)+qtd; S.insumos=S.insumos.map(i=>i.id===ins.id?ins:i); lsSave('insumos',S.insumos); await cloudUpsert('insumos',ins); }
+  fecharModalCompra(); renderEstoque();
+}
+
+// ══════════════════ ATENDIMENTOS ══════════════════
+function renderAtendimentos() {
+  document.getElementById('mainContent').innerHTML=`
+  <div class="space-y-5">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-gray-800">📋 Atendimentos</h2>
+      <button onclick="abrirModalAtend()" class="btn btn-primary btn-sm no-print">+ Registrar</button>
+    </div>
+    <div class="no-print"><input id="filtroMesAtend" type="month" class="inp" style="max-width:180px" value="${mesAtual()}" onchange="renderListaAtend()"></div>
+    <div class="card"><div id="listaAtend"></div></div>
+  </div>
+  <div id="modalAtend" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5">
+      <h3 class="font-bold text-lg mb-4">Registrar Atendimento</h3>
+      <div class="space-y-3">
+        <div><label class="text-xs text-gray-500">Data</label><input id="fa_data" type="date" class="inp mt-1" value="${today()}"></div>
+        <div><label class="text-xs text-gray-500">Paciente (opcional)</label>
+          <select id="fa_paciente" class="inp mt-1"><option value="">Sem paciente</option>
+          ${S.pacientes.map(p=>`<option value="${p.id}">${escHtml(p.nome)}</option>`).join('')}</select></div>
+        <div><label class="text-xs text-gray-500">Procedimento</label>
+          <select id="fa_proc" class="inp mt-1" onchange="preencherAtendProc()">
+            <option value="">Selecione…</option>${S.procs.map(p=>`<option value="${p.id}">${escHtml(p.nome)}</option>`).join('')}
+          </select></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="text-xs text-gray-500">Preço (R$)</label><input id="fa_preco" type="number" class="inp mt-1"></div>
+          <div><label class="text-xs text-gray-500">Pagamento</label>
+            <select id="fa_pag" class="inp mt-1">
+              <option>Dinheiro</option><option>PIX</option><option>Débito</option>
+              <option>Crédito 1x</option><option>Crédito 2x</option><option>Crédito 3x</option>
+              <option>Crédito 4x</option><option>Crédito 6x</option><option>Crédito 12x</option>
+            </select></div>
+        </div>
+        <div id="resumoAtend" class="bg-rose-50 rounded-xl p-3 text-xs hidden"></div>
+      </div>
+      <div class="flex gap-2 mt-4 justify-end">
+        <button onclick="fecharModalAtend()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="salvarAtend()" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>`;
+  renderListaAtend();
+}
+function preencherAtendProc() {
+  const pid=document.getElementById('fa_proc').value;
+  const p=S.procs.find(x=>x.id===pid); if(!p) return;
+  document.getElementById('fa_preco').value=p.preco||'';
+  const ficha=Array.isArray(p.ficha)?p.ficha:[];
+  const custoIns=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0);
+  const cm=calcCustoMinuto(); const custoTempo=cm*(+p.tempo||0);
+  const el=document.getElementById('resumoAtend'); el.classList.remove('hidden');
+  el.innerHTML=`Custo insumos: ${fmtBRL(custoIns)} | Custo tempo: ${fmtBRL(custoTempo)} | Total custo: ${fmtBRL(custoIns+custoTempo)} | Lucro estimado: ${fmtBRL((+p.preco||0)-custoIns-custoTempo)}`;
+}
+function renderListaAtend() {
+  const mes=(document.getElementById('filtroMesAtend')||{value:mesAtual()}).value||mesAtual();
+  const regs=S.regs.filter(r=>r.data&&r.data.startsWith(mes)).sort((a,b)=>b.data>a.data?1:-1);
+  const el=document.getElementById('listaAtend'); if(!el) return;
+  const total=regs.reduce((s,r)=>s+(+r.preco||0),0);
+  if(!regs.length){ el.innerHTML='<div class="text-center py-6 text-gray-400">Nenhum atendimento neste mês</div>'; return; }
+  el.innerHTML=`<div class="text-xs text-gray-500 mb-3">Total: <strong>${fmtBRL(total)}</strong> em ${regs.length} atendimentos</div>
+  <table class="w-full text-sm"><thead><tr class="table-header"><th class="p-2 text-left">Data</th><th class="p-2 text-left">Procedimento</th><th class="p-2 text-left">Paciente</th><th class="p-2">Valor</th><th class="p-2">Pgto</th><th class="p-2 no-print"></th></tr></thead><tbody>
+  ${regs.map(r=>`<tr class="border-b hover:bg-gray-50">
+    <td class="p-2 text-xs text-gray-500">${r.data}</td>
+    <td class="p-2">${escHtml(r.proc_nome||'-')}</td>
+    <td class="p-2 text-xs text-gray-500">${escHtml(r.paciente_nome||'-')}</td>
+    <td class="p-2 text-center font-semibold">${fmtBRL(r.preco)}</td>
+    <td class="p-2 text-center"><span class="tag tag-blue">${r.pagamento||'-'}</span></td>
+    <td class="p-2 text-center no-print"><button onclick="deletarAtend('${r.id}')" class="btn btn-sm btn-danger">🗑</button></td>
+  </tr>`).join('')}</tbody></table>`;
+}
+function fecharModalAtend(){ document.getElementById('modalAtend').classList.add('hidden'); }
+async function salvarAtend() {
+  const data=document.getElementById('fa_data').value;
+  const procId=document.getElementById('fa_proc').value;
+  const pacId=document.getElementById('fa_paciente').value;
+  const preco=+document.getElementById('fa_preco').value||0;
+  const pagamento=document.getElementById('fa_pag').value;
+  if(!data||!procId) return alert('Informe data e procedimento');
+  const proc=S.procs.find(p=>p.id===procId);
+  const pac=S.pacientes.find(p=>p.id===pacId);
+  const ficha=proc&&Array.isArray(proc.ficha)?proc.ficha:[];
+  const custoInsumos=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0);
+  const cm=calcCustoMinuto(); const custoTempo=cm*(+(proc&&proc.tempo)||0);
+  const parcelas=parseInt((pagamento.match(/(\d+)x/)||[0,1])[1])||1;
+  const id=uid();
+  const obj={id,data,proc_id:procId,proc_nome:proc?proc.nome:'',
+    paciente_id:pacId||null,paciente_nome:pac?pac.nome:'',
+    preco,pagamento,parcelas,custo_insumos:custoInsumos,custo_tempo:custoTempo};
+  S.regs.push(obj); lsSave('regs',S.regs); await cloudUpsert('registros',obj);
+  for(const f of ficha){
+    const ins=S.insumos.find(i=>i.id===f.insumo_id);
+    if(ins){ ins.estoque=Math.max(0,(+ins.estoque||0)-(+f.qtd||0)); S.insumos=S.insumos.map(i=>i.id===ins.id?ins:i); await cloudUpsert('insumos',ins); }
+  }
+  lsSave('insumos',S.insumos);
+  const valorParcela=preco/parcelas;
+  for(let p=1;p<=parcelas;p++){
+    const dp=new Date(data); dp.setMonth(dp.getMonth()+(p-1));
+    const recId=uid();
+    const rec={id:recId,reg_id:id,descricao:`${proc?proc.nome:'Atend.'}${p>1?` (${p}/${parcelas})`:''}`,
+      data_prevista:dp.toISOString().slice(0,10),data_recebido:parcelas===1?data:null,
+      valor:valorParcela,status:parcelas===1?'recebido':'pendente',parcela:p,total_parcelas:parcelas};
+    S.recebimentos.push(rec); await cloudUpsert('recebimentos',rec);
+  }
+  lsSave('recebimentos',S.recebimentos);
+  fecharModalAtend(); renderListaAtend();
+}
+async function deletarAtend(id) {
+  if(!confirm('Excluir atendimento?')) return;
+  S.regs=S.regs.filter(r=>r.id!==id);
+  S.recebimentos=S.recebimentos.filter(r=>r.reg_id!==id);
+  lsSave('regs',S.regs); lsSave('recebimentos',S.recebimentos);
+  await cloudDelete('registros',id); renderListaAtend();
+}
+
+// ══════════════════ PACIENTES ══════════════════
+function renderPacientes() {
+  document.getElementById('mainContent').innerHTML=`
+  <div class="space-y-5">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-gray-800">👥 Pacientes</h2>
+      <button onclick="abrirModalPac()" class="btn btn-primary btn-sm no-print">+ Novo</button>
+    </div>
+    <input id="buscaPac" class="inp" placeholder="Buscar por nome…" oninput="renderListaPac()" style="max-width:300px">
+    <div id="listaPacientes" class="space-y-3"></div>
+  </div>
+  <div id="modalPac" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+      <h3 class="font-bold text-lg mb-4" id="modalPacTitle">Paciente</h3>
+      <div class="space-y-3">
+        <input id="fp2_nome" class="inp" placeholder="Nome completo">
+        <input id="fp2_tel" class="inp" placeholder="Telefone / WhatsApp">
+        <input id="fp2_nasc" type="date" class="inp">
+        <textarea id="fp2_obs" class="inp" rows="2" placeholder="Observações / alergias"></textarea>
+      </div>
+      <div class="flex gap-2 mt-4 justify-end">
+        <button onclick="fecharModalPac()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="salvarPac()" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>`;
+  renderListaPac();
+}
+function renderListaPac() {
+  const busca=(document.getElementById('buscaPac')||{value:''}).value.toLowerCase();
+  const lista=S.pacientes.filter(p=>!busca||p.nome.toLowerCase().includes(busca));
+  const el=document.getElementById('listaPacientes'); if(!el) return;
+  if(!lista.length){ el.innerHTML='<div class="text-center py-6 text-gray-400">Nenhum paciente cadastrado</div>'; return; }
+  el.innerHTML=lista.map(p=>{
+    const hists=S.regs.filter(r=>r.paciente_id===p.id).sort((a,b)=>b.data>a.data?1:-1);
+    const ticket=hists.length>0?hists.reduce((s,r)=>s+(+r.preco||0),0)/hists.length:0;
+    const ult=hists[0]?.data||null;
+    const dias=ult?Math.floor((new Date()-new Date(ult))/86400000):null;
+    const alerta=dias!==null&&dias>60;
+    return `<div class="card">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1">
+          <div class="font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
+            ${escHtml(p.nome)}
+            ${alerta?`<span class="tag tag-yellow">⏰ ${dias}d sem retorno</span>`:''}
+          </div>
+          <div class="text-xs text-gray-500">${p.telefone||''}</div>
+          ${p.observacoes?`<div class="text-xs text-gray-400 mt-1">${escHtml(p.observacoes)}</div>`:''}
+        </div>
+        <div class="text-right text-xs flex-shrink-0">
+          <div class="font-bold text-gray-700">${hists.length} atend.</div>
+          <div class="text-gray-500">Ticket: ${fmtBRL(ticket)}</div>
+          ${ult?`<div class="text-gray-400">${ult}</div>`:''}
+        </div>
+        <div class="flex gap-1 no-print">
+          <button onclick="abrirModalPac('${p.id}')" class="btn btn-sm btn-secondary">✏</button>
+          <button onclick="deletarPac('${p.id}')" class="btn btn-sm btn-danger">🗑</button>
+        </div>
+      </div>
+      ${hists.length>0?`<div class="mt-3 border-t pt-2 space-y-1">
+        ${hists.slice(0,3).map(r=>`<div class="flex justify-between text-xs text-gray-600"><span>${r.data} — ${escHtml(r.proc_nome||'-')}</span><span class="font-medium">${fmtBRL(r.preco)}</span></div>`).join('')}
+        ${hists.length>3?`<div class="text-xs text-gray-400">+${hists.length-3} atendimentos</div>`:''}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+let editingPacId=null;
+function abrirModalPac(id=null) {
+  editingPacId=id; const p=id?S.pacientes.find(x=>x.id===id):null;
+  document.getElementById('modalPacTitle').textContent=id?'Editar Paciente':'Novo Paciente';
+  document.getElementById('fp2_nome').value=p?p.nome:'';
+  document.getElementById('fp2_tel').value=p?p.telefone||'':'';
+  document.getElementById('fp2_nasc').value=p?p.nascimento||'':'';
+  document.getElementById('fp2_obs').value=p?p.observacoes||'':'';
+  document.getElementById('modalPac').classList.remove('hidden');
+}
+function fecharModalPac(){ document.getElementById('modalPac').classList.add('hidden'); }
+async function salvarPac() {
+  const nome=document.getElementById('fp2_nome').value.trim(); if(!nome) return alert('Informe o nome');
+  const id=editingPacId||uid();
+  const obj={id,nome,telefone:document.getElementById('fp2_tel').value.trim(),
+    nascimento:document.getElementById('fp2_nasc').value||null,
+    observacoes:document.getElementById('fp2_obs').value.trim()};
+  S.pacientes=S.pacientes.filter(p=>p.id!==id); S.pacientes.push(obj);
+  lsSave('pacientes',S.pacientes); await cloudUpsert('pacientes',obj);
+  fecharModalPac(); renderListaPac();
+}
+async function deletarPac(id) {
+  if(!confirm('Excluir paciente?')) return;
+  S.pacientes=S.pacientes.filter(p=>p.id!==id); lsSave('pacientes',S.pacientes);
+  await cloudDelete('pacientes',id); renderListaPac();
+}
+
+// ══════════════════ FINANCEIRO ══════════════════
+function renderFinanceiro() {
+  document.getElementById('mainContent').innerHTML=`
+  <div class="space-y-5">
+    <h2 class="text-xl font-bold text-gray-800">💰 Financeiro</h2>
+    <div class="flex gap-2 flex-wrap no-print">
+      <button onclick="showFinTab('fluxo')" class="btn btn-sm" id="ftab-fluxo">💸 Fluxo de Caixa</button>
+      <button onclick="showFinTab('despesas')" class="btn btn-sm" id="ftab-despesas">📤 Despesas Variáveis</button>
+      <button onclick="showFinTab('metas')" class="btn btn-sm" id="ftab-metas">🎯 Metas Mensais</button>
+    </div>
+    <div id="finTabContent"></div>
+  </div>`;
+  showFinTab('fluxo');
+}
+function showFinTab(tab) {
+  ['fluxo','despesas','metas'].forEach(t=>{ const b=document.getElementById('ftab-'+t); if(b) b.className='btn btn-sm '+(t===tab?'btn-primary':'btn-secondary'); });
+  const el=document.getElementById('finTabContent');
+  if(tab==='fluxo') renderFluxoCaixa(el);
+  if(tab==='despesas') renderDespesas(el);
+  if(tab==='metas') renderMetas(el);
+}
+function renderFluxoCaixa(el) {
+  const mes=mesAtual();
+  el.innerHTML=`<div class="space-y-4">
+    <div class="flex items-center gap-3 flex-wrap">
+      <span class="font-medium text-gray-700">Fluxo de Caixa</span>
+      <input type="month" id="mesFluxo" value="${mes}" class="inp" style="max-width:160px" onchange="atualizarFluxo()">
+    </div>
+    <div class="grid grid-cols-3 gap-3" id="fluxoCards"></div>
+    <div class="card"><table class="w-full text-sm"><thead><tr class="table-header">
+      <th class="p-2 text-left">Descrição</th><th class="p-2">Previsão</th><th class="p-2">Valor</th><th class="p-2">Status</th><th class="p-2 no-print">Ação</th>
+    </tr></thead><tbody id="tbodyFluxo"></tbody></table></div>
+  </div>`;
+  atualizarFluxo();
+}
+function atualizarFluxo() {
+  const mes=(document.getElementById('mesFluxo')||{value:mesAtual()}).value||mesAtual();
+  const recs=S.recebimentos.filter(r=>r.data_prevista&&r.data_prevista.startsWith(mes));
+  const recebido=recs.filter(r=>r.status==='recebido').reduce((s,r)=>s+(+r.valor||0),0);
+  const pendente=recs.filter(r=>r.status==='pendente').reduce((s,r)=>s+(+r.valor||0),0);
+  const vencido=recs.filter(r=>r.status==='pendente'&&r.data_prevista<today()).reduce((s,r)=>s+(+r.valor||0),0);
+  const cards=document.getElementById('fluxoCards');
+  if(cards) cards.innerHTML=`
+    <div class="card border-l-4 border-green-400"><div class="text-xs text-gray-500">Recebido ${tip('Confirmados como recebidos')}</div><div class="text-lg font-bold text-green-600">${fmtBRL(recebido)}</div></div>
+    <div class="card border-l-4 border-yellow-400"><div class="text-xs text-gray-500">A Receber</div><div class="text-lg font-bold text-yellow-600">${fmtBRL(pendente)}</div></div>
+    <div class="card border-l-4 border-red-400"><div class="text-xs text-gray-500">Vencidos ${tip('Pendentes com data prevista já passada')}</div><div class="text-lg font-bold text-red-600">${fmtBRL(vencido)}</div></div>`;
+  const tb=document.getElementById('tbodyFluxo'); if(!tb) return;
+  const sorted=recs.sort((a,b)=>a.data_prevista>b.data_prevista?1:-1);
+  if(!sorted.length){ tb.innerHTML=`<tr><td colspan="5" class="text-center py-4 text-gray-400">Nenhum lançamento</td></tr>`; return; }
+  tb.innerHTML=sorted.map(r=>{
+    const v=r.status==='pendente'&&r.data_prevista<today();
+    return `<tr class="border-b hover:bg-gray-50">
+      <td class="p-2">${escHtml(r.descricao||'-')}</td>
+      <td class="p-2 text-center text-xs">${r.data_prevista}</td>
+      <td class="p-2 text-center font-semibold">${fmtBRL(r.valor)}</td>
+      <td class="p-2 text-center"><span class="tag ${r.status==='recebido'?'tag-green':v?'tag-red':'tag-yellow'}">${r.status==='recebido'?'✓ Recebido':v?'⚠ Vencido':'⏳ Pendente'}</span></td>
+      <td class="p-2 text-center no-print">${r.status==='pendente'?`<button onclick="confirmarReceb('${r.id}')" class="btn btn-sm btn-ghost">✓ Confirmar</button>`:''}</td>
+    </tr>`;
+  }).join('');
+}
+async function confirmarReceb(id) {
+  const rec=S.recebimentos.find(r=>r.id===id); if(!rec) return;
+  rec.status='recebido'; rec.data_recebido=today();
+  lsSave('recebimentos',S.recebimentos); await cloudUpsert('recebimentos',rec);
+  atualizarFluxo();
+}
+function renderDespesas(el) {
+  el.innerHTML=`<div class="space-y-4">
+    <div class="flex items-center justify-between">
+      <span class="font-medium text-gray-700">Despesas Variáveis</span>
+      <button onclick="abrirModalDesp()" class="btn btn-primary btn-sm no-print">+ Adicionar</button>
+    </div>
+    <input type="month" id="mesDesp" value="${mesAtual()}" class="inp no-print" style="max-width:180px" onchange="renderListaDesp()">
+    <div class="card"><div id="listaDesp"></div></div>
+  </div>
+  <div id="modalDesp" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+      <h3 class="font-bold text-lg mb-4">Nova Despesa Variável</h3>
+      <div class="space-y-3">
+        <div><label class="text-xs text-gray-500">Data</label><input id="fd_data" type="date" class="inp mt-1" value="${today()}"></div>
+        <input id="fd_desc" class="inp" placeholder="Descrição">
+        <select id="fd_cat" class="inp"><option>Material de escritório</option><option>Marketing</option><option>Transporte</option><option>Alimentação</option><option>Manutenção</option><option>Outros</option></select>
+        <input id="fd_valor" type="number" step="0.01" class="inp" placeholder="Valor (R$)">
+      </div>
+      <div class="flex gap-2 mt-4 justify-end">
+        <button onclick="fecharModalDesp()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="salvarDesp()" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>`;
+  renderListaDesp();
+}
+function renderListaDesp() {
+  const mes=(document.getElementById('mesDesp')||{value:mesAtual()}).value||mesAtual();
+  const desps=S.despesas.filter(d=>d.data&&d.data.startsWith(mes)).sort((a,b)=>b.data>a.data?1:-1);
+  const el=document.getElementById('listaDesp'); if(!el) return;
+  const total=desps.reduce((s,d)=>s+(+d.valor||0),0);
+  if(!desps.length){ el.innerHTML='<div class="text-center py-6 text-gray-400">Nenhuma despesa neste mês</div>'; return; }
+  el.innerHTML=`<div class="text-xs text-gray-500 mb-3">Total: <strong>${fmtBRL(total)}</strong></div>
+  <table class="w-full text-sm"><thead><tr class="table-header"><th class="p-2 text-left">Data</th><th class="p-2 text-left">Descrição</th><th class="p-2">Categoria</th><th class="p-2">Valor</th><th class="p-2 no-print"></th></tr></thead><tbody>
+  ${desps.map(d=>`<tr class="border-b"><td class="p-2 text-xs">${d.data}</td><td class="p-2">${escHtml(d.descricao)}</td><td class="p-2 text-center"><span class="tag tag-blue">${d.categoria||'-'}</span></td><td class="p-2 text-center font-semibold text-red-600">${fmtBRL(d.valor)}</td><td class="p-2 text-center no-print"><button onclick="deletarDesp('${d.id}')" class="btn btn-sm btn-danger">🗑</button></td></tr>`).join('')}
+  </tbody></table>`;
+}
+function abrirModalDesp(){ document.getElementById('modalDesp').classList.remove('hidden'); }
+function fecharModalDesp(){ document.getElementById('modalDesp').classList.add('hidden'); }
+async function salvarDesp() {
+  const desc=document.getElementById('fd_desc').value.trim();
+  const valor=+document.getElementById('fd_valor').value||0;
+  if(!desc||!valor) return alert('Preencha descrição e valor');
+  const id=uid();
+  const obj={id,data:document.getElementById('fd_data').value,descricao:desc,categoria:document.getElementById('fd_cat').value,valor};
+  S.despesas.push(obj); lsSave('despesas',S.despesas); await cloudUpsert('despesas_variaveis',obj);
+  fecharModalDesp(); renderListaDesp();
+}
+async function deletarDesp(id) {
+  if(!confirm('Excluir despesa?')) return;
+  S.despesas=S.despesas.filter(d=>d.id!==id); lsSave('despesas',S.despesas);
+  await cloudDelete('despesas_variaveis',id); renderListaDesp();
+}
+function renderMetas(el) {
+  el.innerHTML=`<div class="space-y-4">
+    <div class="flex items-center justify-between">
+      <span class="font-medium text-gray-700">Metas Mensais</span>
+      <button onclick="abrirModalMeta()" class="btn btn-primary btn-sm no-print">+ Definir Meta</button>
+    </div>
+    <div id="listaMetas" class="space-y-3"></div>
+  </div>
+  <div id="modalMeta" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+      <h3 class="font-bold text-lg mb-4">Definir Meta do Mês</h3>
+      <div class="space-y-3">
+        <div><label class="text-xs text-gray-500">Mês</label><input id="fm_mes" type="month" class="inp mt-1" value="${mesAtual()}"></div>
+        <div><label class="text-xs text-gray-500">Meta de Faturamento (R$)</label><input id="fm_fat" type="number" class="inp mt-1"></div>
+        <div><label class="text-xs text-gray-500">Meta de Atendimentos</label><input id="fm_atend" type="number" class="inp mt-1"></div>
+      </div>
+      <div class="flex gap-2 mt-4 justify-end">
+        <button onclick="fecharModalMeta()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="salvarMeta()" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>`;
+  renderListaMetas();
+}
+function renderListaMetas() {
+  const el=document.getElementById('listaMetas'); if(!el) return;
+  const sorted=[...S.metas].sort((a,b)=>b.mes>a.mes?1:-1).slice(0,6);
+  if(!sorted.length){ el.innerHTML='<div class="text-center py-6 text-gray-400">Nenhuma meta definida</div>'; return; }
+  el.innerHTML=sorted.map(m=>{
+    const dre=calcDRE(m.mes);
+    const pF=m.faturamento>0?Math.min((dre.receita/m.faturamento)*100,100):0;
+    const pA=m.atendimentos>0?Math.min((dre.atendimentos/m.atendimentos)*100,100):0;
+    return `<div class="card">
+      <div class="flex justify-between items-center mb-3">
+        <div class="font-semibold text-gray-800">${nomeMes(m.mes)}</div>
+        <button onclick="deletarMeta('${m.id}')" class="btn btn-sm btn-danger no-print">🗑</button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <div class="flex justify-between text-xs mb-1"><span>Faturamento</span><span><strong>${fmtBRL(dre.receita)}</strong> / ${fmtBRL(m.faturamento)}</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pF}%;background:${pF>=100?'#10b981':'#e11d48'}"></div></div>
+          <div class="text-xs text-right mt-1 ${pF>=100?'text-green-600':'text-gray-500'}">${pF.toFixed(0)}% ${pF>=100?'✓ Atingida':''}</div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1"><span>Atendimentos</span><span><strong>${dre.atendimentos}</strong> / ${m.atendimentos}</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pA}%;background:${pA>=100?'#10b981':'#e11d48'}"></div></div>
+          <div class="text-xs text-right mt-1 ${pA>=100?'text-green-600':'text-gray-500'}">${pA.toFixed(0)}% ${pA>=100?'✓ Atingida':''}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function abrirModalMeta(){ document.getElementById('modalMeta').classList.remove('hidden'); }
+function fecharModalMeta(){ document.getElementById('modalMeta').classList.add('hidden'); }
+async function salvarMeta() {
+  const mes=document.getElementById('fm_mes').value;
+  const fat=+document.getElementById('fm_fat').value||0;
+  const atend=+document.getElementById('fm_atend').value||0;
+  if(!mes) return alert('Selecione o mês');
+  const existing=S.metas.find(m=>m.mes===mes);
+  const id=existing?existing.id:uid();
+  const obj={id,mes,faturamento:fat,atendimentos:atend};
+  S.metas=S.metas.filter(m=>m.id!==id); S.metas.push(obj);
+  lsSave('metas',S.metas); await cloudUpsert('metas_mensais',obj);
+  fecharModalMeta(); renderListaMetas();
+}
+async function deletarMeta(id) {
+  if(!confirm('Excluir meta?')) return;
+  S.metas=S.metas.filter(m=>m.id!==id); lsSave('metas',S.metas);
+  await cloudDelete('metas_mensais',id); renderListaMetas();
+}
+
+// ══════════════════ RELATÓRIOS ══════════════════
+function renderRelatorios() {
+  document.getElementById('mainContent').innerHTML=`
+  <div class="space-y-5">
+    <h2 class="text-xl font-bold text-gray-800">📄 Relatórios para Contador</h2>
+    <div class="flex gap-2 items-center no-print flex-wrap">
+      <input type="month" id="mesRelatorio" value="${mesAtual()}" class="inp" style="max-width:180px">
+      <button onclick="gerarRelatorio()" class="btn btn-primary">Gerar</button>
+      <button onclick="window.print()" class="btn btn-ghost">🖨 Exportar PDF</button>
+    </div>
+    <div id="conteudoRelatorio"></div>
+  </div>`;
+  gerarRelatorio();
+}
+function gerarRelatorio() {
+  const mes=(document.getElementById('mesRelatorio')||{value:mesAtual()}).value||mesAtual();
+  const dre=calcDRE(mes);
+  const regsM=S.regs.filter(r=>r.data&&r.data.startsWith(mes)).sort((a,b)=>a.data>b.data?1:-1);
+  const despsM=S.despesas.filter(d=>d.data&&d.data.startsWith(mes));
+  const comprasM=S.compras.filter(c=>c.data&&c.data.startsWith(mes));
+  const recM=S.recebimentos.filter(r=>r.data_prevista&&r.data_prevista.startsWith(mes));
+  const recebido=recM.filter(r=>r.status==='recebido').reduce((s,r)=>s+(+r.valor||0),0);
+  document.getElementById('conteudoRelatorio').innerHTML=`
+  <div class="space-y-5">
+    <div class="card">
+      <div class="text-center mb-4">
+        <h2 class="text-xl font-bold text-gray-800">Relatório Mensal — ${nomeMes(mes)}</h2>
+        <p class="text-sm text-gray-500">Dra Mariana Leite — Harmonização Facial & Corporal</p>
+        <p class="text-xs text-gray-400">Gerado em ${new Date().toLocaleDateString('pt-BR')}</p>
+      </div>
+      <hr class="border-rose-200 my-4">
+      <h3 class="font-bold text-gray-700 mb-3">1. Resumo DRE</h3>
+      <table class="w-full text-sm mb-4"><tbody>
+        <tr class="border-b"><td class="py-2">Receita Bruta</td><td class="text-right font-semibold">${fmtBRL(dre.receita)}</td></tr>
+        <tr class="border-b"><td class="py-2 pl-4">(-) Custo de Insumos</td><td class="text-right text-red-500">(${fmtBRL(dre.custoInsumos)})</td></tr>
+        <tr class="border-b"><td class="py-2 pl-4">(-) Custo de Tempo</td><td class="text-right text-red-500">(${fmtBRL(dre.custoTempo)})</td></tr>
+        <tr class="border-b bg-green-50"><td class="py-2 font-bold text-green-700">= Lucro Bruto</td><td class="text-right font-bold text-green-700">${fmtBRL(dre.lucroBruto)}</td></tr>
+        <tr class="border-b"><td class="py-2 pl-4">(-) Custos Fixos</td><td class="text-right text-red-500">(${fmtBRL(dre.totalFixo)})</td></tr>
+        <tr class="border-b"><td class="py-2 pl-4">(-) Despesas Variáveis</td><td class="text-right text-red-500">(${fmtBRL(dre.totalDespesas)})</td></tr>
+        <tr class="bg-rose-50"><td class="py-2 font-bold text-rose-700">= Resultado Operacional</td><td class="text-right font-bold ${dre.resultado>=0?'text-green-700':'text-red-700'}">${fmtBRL(dre.resultado)}</td></tr>
+      </tbody></table>
+      <hr class="border-rose-200 my-4">
+      <h3 class="font-bold text-gray-700 mb-3">2. Fluxo de Caixa</h3>
+      <table class="w-full text-sm mb-4"><tbody>
+        <tr class="border-b"><td class="py-2">Receita Faturada</td><td class="text-right">${fmtBRL(dre.receita)}</td></tr>
+        <tr class="border-b"><td class="py-2">Efetivamente Recebido</td><td class="text-right font-semibold text-green-600">${fmtBRL(recebido)}</td></tr>
+        <tr><td class="py-2">A Receber (parcelas futuras)</td><td class="text-right text-yellow-600">${fmtBRL(dre.receita-recebido)}</td></tr>
+      </tbody></table>
+      <hr class="border-rose-200 my-4">
+      <h3 class="font-bold text-gray-700 mb-3">3. Atendimentos (${regsM.length})</h3>
+      ${regsM.length>0?`<table class="w-full text-sm mb-4"><thead><tr class="table-header"><th class="p-2 text-left">Data</th><th class="p-2 text-left">Procedimento</th><th class="p-2 text-left">Paciente</th><th class="p-2">Valor</th><th class="p-2">Forma Pgto</th></tr></thead><tbody>
+      ${regsM.map(r=>`<tr class="border-b"><td class="p-2 text-xs">${r.data}</td><td class="p-2">${escHtml(r.proc_nome||'-')}</td><td class="p-2 text-xs">${escHtml(r.paciente_nome||'-')}</td><td class="p-2 text-right">${fmtBRL(r.preco)}</td><td class="p-2 text-center text-xs">${r.pagamento||'-'}</td></tr>`).join('')}
+      </tbody></table>`:'<p class="text-sm text-gray-400 mb-4">Nenhum atendimento</p>'}
+      <hr class="border-rose-200 my-4">
+      <h3 class="font-bold text-gray-700 mb-3">4. Custos Fixos</h3>
+      <table class="w-full text-sm mb-4"><tbody>
+      ${S.fixos.map(f=>`<tr class="border-b"><td class="py-2">${escHtml(f.descricao)}</td><td class="text-right">${fmtBRL(f.valor)}</td></tr>`).join('')}
+      <tr class="font-bold"><td class="py-2">Total</td><td class="text-right">${fmtBRL(dre.totalFixo)}</td></tr>
+      </tbody></table>
+      <hr class="border-rose-200 my-4">
+      <h3 class="font-bold text-gray-700 mb-3">5. Despesas Variáveis</h3>
+      ${despsM.length>0?`<table class="w-full text-sm mb-4"><thead><tr class="table-header"><th class="p-2 text-left">Data</th><th class="p-2 text-left">Descrição</th><th class="p-2">Categoria</th><th class="p-2">Valor</th></tr></thead><tbody>
+      ${despsM.map(d=>`<tr class="border-b"><td class="p-2 text-xs">${d.data}</td><td class="p-2">${escHtml(d.descricao)}</td><td class="p-2 text-center text-xs">${d.categoria||'-'}</td><td class="p-2 text-right">${fmtBRL(d.valor)}</td></tr>`).join('')}
+      <tr class="font-bold"><td colspan="3" class="py-2">Total</td><td class="text-right">${fmtBRL(dre.totalDespesas)}</td></tr>
+      </tbody></table>`:'<p class="text-sm text-gray-400 mb-4">Nenhuma despesa variável</p>'}
+      <hr class="border-rose-200 my-4">
+      <h3 class="font-bold text-gray-700 mb-3">6. Compras de Estoque</h3>
+      ${comprasM.length>0?`<table class="w-full text-sm"><thead><tr class="table-header"><th class="p-2 text-left">Data</th><th class="p-2 text-left">Insumo</th><th class="p-2">Qtd</th><th class="p-2">Valor</th></tr></thead><tbody>
+      ${comprasM.map(c=>`<tr class="border-b"><td class="p-2 text-xs">${c.data}</td><td class="p-2">${escHtml(c.insumo_nome||'-')}</td><td class="p-2 text-center">${c.qtd}</td><td class="p-2 text-right">${fmtBRL(c.valor_total)}</td></tr>`).join('')}
+      <tr class="font-bold"><td colspan="3" class="py-2">Total Investido</td><td class="text-right">${fmtBRL(comprasM.reduce((s,c)=>s+(+c.valor_total||0),0))}</td></tr>
+      </tbody></table>`:'<p class="text-sm text-gray-400">Nenhuma compra registrada</p>'}
+    </div>
+  </div>`;
+}
+
+// ══════════════════ CONFIGURAÇÕES ══════════════════
+function renderConfiguracoes() {
+  const totalFixo=S.fixos.reduce((s,f)=>s+(+f.valor||0),0);
+  const cm=calcCustoMinuto();
+  document.getElementById('mainContent').innerHTML=`
+  <div class="space-y-5">
+    <h2 class="text-xl font-bold text-gray-800">⚙️ Configurações</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div class="card">
+        <div class="section-title">Parâmetros Financeiros</div>
+        <div class="space-y-3">
+          <div><label class="text-sm font-medium text-gray-700">Horas Produtivas/Mês ${tip('Total de horas disponíveis para atendimento.\nEx: 22 dias × 6,5h = 143h\nUsado para calcular o Custo/Minuto')}</label>
+            <input id="cfg_horas" type="number" step="0.01" class="inp mt-1" value="${S.cfg.horas||139.41}"></div>
+          <div><label class="text-sm font-medium text-gray-700">Impostos (%) ${tip('Simples Nacional, MEI ou regime tributário.\nIncide sobre o preço final de venda')}</label>
+            <input id="cfg_imposto" type="number" step="0.1" class="inp mt-1" value="${S.cfg.imposto||6}"></div>
+          <div><label class="text-sm font-medium text-gray-700">Taxa Cartão (%) ${tip('Taxa média das maquininhas.\nEx: Cielo ~3%, Stone ~2.5%')}</label>
+            <input id="cfg_cartao" type="number" step="0.1" class="inp mt-1" value="${S.cfg.cartao||3.5}"></div>
+          <div><label class="text-sm font-medium text-gray-700">Lucro Desejado (%) ${tip('Percentual de lucro líquido sobre o preço de venda.\nEx: 30% = 30 centavos de lucro por real cobrado')}</label>
+            <input id="cfg_lucro" type="number" step="0.1" class="inp mt-1" value="${S.cfg.lucro||30}"></div>
+          <button onclick="salvarCfg()" class="btn btn-primary">Salvar Configurações</button>
+          <div id="cfgMsg" class="text-sm text-green-600 hidden">✓ Salvo com sucesso!</div>
+        </div>
+      </div>
+      <div class="card bg-rose-50">
+        <div class="section-title">🧮 Como Funciona a Precificação</div>
+        <div class="text-sm text-gray-700 space-y-2">
+          <div>Custo/Minuto atual: <strong class="text-rose-700">${fmtBRL(cm)}/min</strong></div>
+          <div>Total Custos Fixos: <strong>${fmtBRL(totalFixo)}</strong></div>
+          <div>Capacidade: <strong>${S.cfg.horas||139.41}h × 60 = ${((S.cfg.horas||139.41)*60).toFixed(0)} min/mês</strong></div>
+          <hr class="border-rose-200 my-2">
+          <div class="text-xs text-gray-600 space-y-1">
+            <div>Fórmula:</div>
+            <code class="block bg-white rounded p-2">Preço = Custo ÷ (1 − ${+(S.cfg.imposto||6)}% − ${+(S.cfg.cartao||3.5)}% − ${+(S.cfg.lucro||30)}%)</code>
+            <code class="block bg-white rounded p-2">Divisor = ${((1-(+(S.cfg.imposto||6)++(S.cfg.cartao||3.5)++(S.cfg.lucro||30))/100)*100).toFixed(1)}% do preço cobre custos</code>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="flex items-center justify-between mb-3">
+        <div class="section-title mb-0">Custos Fixos Mensais ${tip('Gastos que existem todo mês, independentemente do volume de atendimentos.\nEx: aluguel, salários, plataformas, contador')}</div>
+        <button onclick="abrirModalFixo()" class="btn btn-primary btn-sm no-print">+ Adicionar</button>
+      </div>
+      <div id="listaFixos"></div>
+      <div id="totalFixos" class="mt-3 text-sm font-semibold text-gray-700"></div>
+    </div>
+  </div>
+  <div id="modalFixo" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+      <h3 class="font-bold text-lg mb-4" id="modalFixoTitle">Custo Fixo</h3>
+      <div class="space-y-3">
+        <input id="ff_desc" class="inp" placeholder="Descrição (ex: Aluguel, Salário)">
+        <input id="ff_valor" type="number" step="0.01" class="inp" placeholder="Valor mensal (R$)">
+      </div>
+      <div class="flex gap-2 mt-4 justify-end">
+        <button onclick="fecharModalFixo()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="salvarFixo()" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>`;
+  renderListaFixos();
+}
+function renderListaFixos() {
+  const el=document.getElementById('listaFixos'); const tel=document.getElementById('totalFixos');
+  if(!el) return;
+  const total=S.fixos.reduce((s,f)=>s+(+f.valor||0),0);
+  if(tel) tel.textContent=`Total Mensal: ${fmtBRL(total)}`;
+  if(!S.fixos.length){ el.innerHTML='<div class="text-sm text-gray-400 py-3">Nenhum custo fixo cadastrado</div>'; return; }
+  el.innerHTML=`<table class="w-full text-sm"><tbody>
+  ${S.fixos.map(f=>`<tr class="border-b"><td class="py-2">${escHtml(f.descricao)}</td><td class="py-2 text-right font-semibold">${fmtBRL(f.valor)}</td><td class="py-2 text-right no-print"><button onclick="abrirModalFixo('${f.id}')" class="btn btn-sm btn-secondary">✏</button> <button onclick="deletarFixo('${f.id}')" class="btn btn-sm btn-danger">🗑</button></td></tr>`).join('')}
+  </tbody></table>`;
+}
+async function salvarCfg() {
+  S.cfg={...S.cfg,horas:+document.getElementById('cfg_horas').value||139.41,imposto:+document.getElementById('cfg_imposto').value||6,cartao:+document.getElementById('cfg_cartao').value||3.5,lucro:+document.getElementById('cfg_lucro').value||30};
+  lsSave('cfg',S.cfg);
+  try{ await sb.from('config_clinica').upsert({...S.cfg,user_id:S.user.id,updated_at:new Date().toISOString()}); }catch(e){}
+  document.getElementById('cfgMsg').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('cfgMsg')?.classList.add('hidden'),2000);
+}
+let editingFixoId=null;
+function abrirModalFixo(id=null) {
+  editingFixoId=id; const f=id?S.fixos.find(x=>x.id===id):null;
+  document.getElementById('modalFixoTitle').textContent=id?'Editar Custo Fixo':'Novo Custo Fixo';
+  document.getElementById('ff_desc').value=f?f.descricao:'';
+  document.getElementById('ff_valor').value=f?f.valor:'';
+  document.getElementById('modalFixo').classList.remove('hidden');
+}
+function fecharModalFixo(){ document.getElementById('modalFixo').classList.add('hidden'); }
+async function salvarFixo() {
+  const desc=document.getElementById('ff_desc').value.trim(); if(!desc) return alert('Informe a descrição');
+  const id=editingFixoId||uid();
+  const obj={id,descricao:desc,valor:+document.getElementById('ff_valor').value||0};
+  S.fixos=S.fixos.filter(f=>f.id!==id); S.fixos.push(obj);
+  lsSave('fixos',S.fixos); await cloudUpsert('custos_fixos',obj);
+  fecharModalFixo(); renderListaFixos();
+}
+async function deletarFixo(id) {
+  if(!confirm('Excluir custo fixo?')) return;
+  S.fixos=S.fixos.filter(f=>f.id!==id); lsSave('fixos',S.fixos);
+  await cloudDelete('custos_fixos',id); renderListaFixos();
+}
+
+// ══════════════════ INIT ══════════════════
+(async function init() {
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session?.user){ S.user=session.user; await loadAll(); showApp(); }
+  else { document.getElementById('loginPage').classList.remove('hidden'); }
+})();
 </script>
 </body>
 </html>
