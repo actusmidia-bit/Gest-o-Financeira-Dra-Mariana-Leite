@@ -339,7 +339,7 @@ function renderProcedimentos() {
       <div><strong>Fórmula de Precificação:</strong> Preço = Custo Total ÷ (1 − Impostos% − Cartão% − Lucro%)</div>
       <div class="text-gray-600">Custo Total = Custo dos Insumos + (Custo/Min × Tempo do Procedimento)</div>
       <div class="text-gray-600">Custo/Minuto atual: <strong>${fmtBRL(cm)}/min</strong> | Fixos: ${fmtBRL(totalFixo)} | ${S.cfg.horas||139.41}h × 60min</div>
-      <div class="text-gray-500 text-xs">Divisor: 1 − (${S.cfg.imposto||6}% + ${S.cfg.cartao||3.5}% + ${S.cfg.lucro||30}%) = ${((1-(+(S.cfg.imposto||6)++(S.cfg.cartao||3.5)++(S.cfg.lucro||30))/100)*100).toFixed(1)}% restante para cobrir custos</div>
+      <div class="text-gray-500 text-xs">Divisor: 1 − (${S.cfg.imposto||6}% + ${S.cfg.cartao||3.5}% + ${S.cfg.lucro||30}%) = ${((1-(+(S.cfg.imposto||6) + +(S.cfg.cartao||3.5) + +(S.cfg.lucro||30))/100)*100).toFixed(1)}% restante para cobrir custos</div>
     </div>
     <div id="listaProcs" class="space-y-3"></div>
   </div>
@@ -1110,7 +1110,7 @@ function renderConfiguracoes() {
           <div class="text-xs text-gray-600 space-y-1">
             <div>Fórmula:</div>
             <code class="block bg-white rounded p-2">Preço = Custo ÷ (1 − ${+(S.cfg.imposto||6)}% − ${+(S.cfg.cartao||3.5)}% − ${+(S.cfg.lucro||30)}%)</code>
-            <code class="block bg-white rounded p-2">Divisor = ${((1-(+(S.cfg.imposto||6)++(S.cfg.cartao||3.5)++(S.cfg.lucro||30))/100)*100).toFixed(1)}% do preço cobre custos</code>
+            <code class="block bg-white rounded p-2">Divisor = ${((1-(+(S.cfg.imposto||6) + +(S.cfg.cartao||3.5) + +(S.cfg.lucro||30))/100)*100).toFixed(1)}% do preço cobre custos</code>
           </div>
         </div>
       </div>
