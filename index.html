@@ -52,7 +52,7 @@ body{font-family:'Segoe UI',sans-serif;background:#fdf2f4;}
 <body class="min-h-screen">
 
 <!-- LOGIN -->
-<div id="loginPage" class="hidden min-h-screen flex items-center justify-center p-4">
+<div id="loginPage" class="min-h-screen flex items-center justify-center p-4">
   <div class="card w-full max-w-sm">
     <div class="text-center mb-6">
       <div class="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -165,11 +165,9 @@ async function loadAll() {
   const tables=[['insumos','insumos'],['custos_fixos','fixos'],['procedimentos','procs'],
     ['registros','regs'],['pacientes','pacientes'],['recebimentos','recebimentos'],
     ['despesas_variaveis','despesas'],['compras_estoque','compras'],['metas_mensais','metas']];
-  for(const [tbl,key] of tables){
-    const d=await cloudLoad(tbl);
-    if(d){ S[key]=d; lsSave(key,d); }
-  }
-  const cfgR=await sb.from('config_clinica').select('*').eq('user_id',S.user.id).maybeSingle();
+  const results = await Promise.all(tables.map(([tbl])=>cloudLoad(tbl)));
+  results.forEach((d,i)=>{ if(d){ S[tables[i][1]]=d; lsSave(tables[i][1],d); } });
+  const cfgR=await sb.from('config_clinica').select('*').eq('user_id',S.user.id).maybeSingle().catch(()=>({data:null}));
   if(cfgR.data){ S.cfg=cfgR.data; lsSave('cfg',cfgR.data); }
   setSyncStatus('✓ Sincronizado','text-green-500');
   setTimeout(()=>setSyncStatus(''),3000);
@@ -1183,9 +1181,13 @@ async function deletarFixo(id) {
 
 // ══════════════════ INIT ══════════════════
 (async function init() {
-  const { data:{ session } } = await sb.auth.getSession();
-  if(session?.user){ S.user=session.user; await loadAll(); showApp(); }
-  else { document.getElementById('loginPage').classList.remove('hidden'); }
+  try {
+    const timeout = new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),5000));
+    const { data:{ session } } = await Promise.race([sb.auth.getSession(), timeout]);
+    if(session?.user){ S.user=session.user; await loadAll(); showApp(); }
+  } catch(e) {
+    // session check failed or timed out — show login
+  }
 })();
 </script>
 </body>
