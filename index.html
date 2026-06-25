@@ -43,13 +43,25 @@ body{font-family:'Segoe UI',sans-serif;background:#fdf2f4;}
 .metric-card{background:#fff;border-radius:14px;padding:1rem 1.2rem;box-shadow:0 2px 8px rgba(225,29,72,.07);border-left:4px solid var(--rose);}
 .table-header{background:#fdf2f4;font-size:.78rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;}
 @media print{
-  nav,#sidebar,.btn,.no-print{display:none!important;}
+  nav,#sidebar,.btn,.no-print,#toastContainer{display:none!important;}
   body{background:#fff;}
-  .card{box-shadow:none;border:1px solid #e5e7eb;}
+  .card{box-shadow:none;border:1px solid #e5e7eb;break-inside:avoid;}
+  h3{break-after:avoid;}
 }
+/* Mobile sidebar */
+@media(max-width:640px){
+  #sidebar{position:fixed;left:-180px;top:0;bottom:0;z-index:40;transition:left .2s;width:180px;}
+  #sidebar.open{left:0;box-shadow:4px 0 20px rgba(0,0,0,.15);}
+  #overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:39;}
+  #overlay.show{display:block;}
+}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;padding:.6rem 1.1rem;border-radius:12px;font-size:.85rem;font-weight:600;color:#fff;z-index:100;animation:slideUp .2s ease;box-shadow:0 4px 14px rgba(0,0,0,.2);}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body class="min-h-screen">
+<div id="toastContainer"></div>
+<div id="overlay" onclick="closeSidebar()"></div>
 
 <!-- LOGIN -->
 <div id="loginPage" class="min-h-screen flex items-center justify-center p-4">
@@ -73,7 +85,8 @@ body{font-family:'Segoe UI',sans-serif;background:#fdf2f4;}
 <!-- APP -->
 <div id="appShell" class="hidden flex flex-col h-screen">
   <header class="bg-white border-b border-rose-100 px-4 py-2 flex items-center gap-3 no-print">
-    <div class="w-8 h-8 bg-rose-100 rounded-full flex items-center justify-center"><span class="text-lg">🌸</span></div>
+    <button onclick="toggleSidebar()" class="sm:hidden btn btn-sm btn-secondary p-2">☰</button>
+    <div class="w-8 h-8 bg-rose-100 rounded-full flex items-center justify-center hidden sm:flex"><span class="text-lg">🌸</span></div>
     <span class="font-bold text-gray-800 text-sm">Gestão Financeira</span>
     <span class="text-xs text-gray-400 hidden sm:block">Dra Mariana Leite</span>
     <div class="ml-auto flex items-center gap-2">
@@ -105,6 +118,27 @@ const S = { user:null, insumos:[], fixos:[], procs:[], regs:[], cfg:{},
   pacientes:[], recebimentos:[], despesas:[], compras:[], metas:[] };
 let currentPage = 'dashboard';
 let chartInstance = null;
+
+// ── Toast ──────────────────────────────────────────
+function showToast(msg, type='success') {
+  const c=document.getElementById('toastContainer'); if(!c) return;
+  const t=document.createElement('div');
+  t.className='toast';
+  t.style.background=type==='success'?'#10b981':type==='error'?'#ef4444':'#f59e0b';
+  t.textContent=msg;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+// ── Mobile sidebar ──────────────────────────────────
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
 
 const fmtBRL = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0);
 const fmtPct = v => `${(+v||0).toFixed(1)}%`;
@@ -180,6 +214,7 @@ function showApp() {
 
 function goTo(page) {
   currentPage=page;
+  closeSidebar();
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   const nav=document.getElementById('nav-'+page);
   if(nav) nav.classList.add('active');
@@ -235,6 +270,15 @@ function renderDashboard() {
   const cm=calcCustoMinuto();
   const estoqueAlerta=S.insumos.filter(i=>(+i.estoque||0)<=(+i.estoque_min||0)&&(+i.estoque_min||0)>0);
   const recPendentes=S.recebimentos.filter(r=>r.status==='pendente'&&r.data_prevista<=today());
+  // mês anterior
+  const mesAnt=(()=>{const d=new Date(mes+'-02');d.setMonth(d.getMonth()-1);return d.toISOString().slice(0,7);})();
+  const dreAnt=calcDRE(mesAnt);
+  const diffRec=dreAnt.receita>0?((dre.receita-dreAnt.receita)/dreAnt.receita)*100:null;
+  const diffRes=dreAnt.resultado!==0?((dre.resultado-dreAnt.resultado)/Math.abs(dreAnt.resultado))*100:null;
+  // break-even
+  const ticketMedioGeral=dre.atendimentos>0?dre.receita/dre.atendimentos:0;
+  const breakEven=ticketMedioGeral>0?Math.ceil((dre.totalFixo+dre.totalDespesas)/ticketMedioGeral):0;
+  const faltamBE=Math.max(0,breakEven-dre.atendimentos);
 
   document.getElementById('mainContent').innerHTML=`
   <div class="space-y-5">
@@ -262,22 +306,22 @@ function renderDashboard() {
       <div class="metric-card">
         <div class="text-xs text-gray-500 mb-1">Receita Bruta ${tip('Soma de todos os atendimentos do mês')}</div>
         <div class="text-lg font-bold text-gray-800">${fmtBRL(dre.receita)}</div>
-        <div class="text-xs text-gray-400">${dre.atendimentos} atend.</div>
+        <div class="text-xs ${diffRec===null?'text-gray-400':diffRec>=0?'text-green-500':'text-red-500'}">${dre.atendimentos} atend. ${diffRec!==null?`· ${diffRec>=0?'▲':'▼'} ${Math.abs(diffRec).toFixed(0)}% vs mês ant.`:''}</div>
       </div>
       <div class="metric-card" style="border-left-color:#10b981">
         <div class="text-xs text-gray-500 mb-1">Lucro Bruto ${tip('Receita − Custo Insumos − Custo Tempo')}</div>
         <div class="text-lg font-bold text-green-600">${fmtBRL(dre.lucroBruto)}</div>
-        <div class="text-xs text-gray-400">${fmtPct(dre.receita>0?(dre.lucroBruto/dre.receita)*100:0)} receita</div>
+        <div class="text-xs text-gray-400">${fmtPct(dre.receita>0?(dre.lucroBruto/dre.receita)*100:0)} da receita</div>
       </div>
       <div class="metric-card" style="border-left-color:${dre.resultado>=0?'#3b82f6':'#ef4444'}">
         <div class="text-xs text-gray-500 mb-1">Resultado ${tip('Lucro Bruto − Custos Fixos − Despesas Variáveis')}</div>
         <div class="text-lg font-bold ${dre.resultado>=0?'text-blue-600':'text-red-600'}">${fmtBRL(dre.resultado)}</div>
-        <div class="text-xs text-gray-400">Margem ${fmtPct(dre.margem)}</div>
+        <div class="text-xs ${diffRes===null?'text-gray-400':diffRes>=0?'text-green-500':'text-red-500'}">${fmtPct(dre.margem)} ${diffRes!==null?`· ${diffRes>=0?'▲':'▼'} ${Math.abs(diffRes).toFixed(0)}% vs ant.`:''}</div>
       </div>
       <div class="metric-card" style="border-left-color:#8b5cf6">
-        <div class="text-xs text-gray-500 mb-1">Custo/Min ${tip('Total Fixos ÷ (Horas Produtivas × 60)\nRepresenta quanto custa cada minuto da Dra trabalhando')}</div>
-        <div class="text-lg font-bold text-purple-600">${fmtBRL(cm)}</div>
-        <div class="text-xs text-gray-400">${S.cfg.horas||139.41}h/mês</div>
+        <div class="text-xs text-gray-500 mb-1">Break-even ${tip('Quantos atendimentos cobrem todos os custos fixos + despesas\nCalculado com o ticket médio do mês')}</div>
+        <div class="text-lg font-bold text-purple-600">${breakEven} atend.</div>
+        <div class="text-xs ${faltamBE===0?'text-green-500':'text-orange-500'}">${faltamBE===0?'✓ Coberto!':'Faltam '+faltamBE+' atend.'}</div>
       </div>
     </div>
     <div class="card" id="dreDetalhado">
@@ -301,11 +345,37 @@ function renderDashboard() {
       ${recPendentes.map(r=>`<div class="text-sm text-red-600 mb-1">💰 Recebimento vencido: <strong>${escHtml(r.descricao)}</strong> — ${fmtBRL(r.valor)} (previsto ${r.data_prevista})</div>`).join('')}
     </div>`:''}
     <div class="card">
+      <div class="section-title">🧮 Simulador de Cenário</div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs text-gray-500">Se eu fizer <strong id="simQtdLabel">0</strong> atendimentos/mês</label>
+          <input type="range" id="simQtd" min="0" max="120" value="${dre.atendimentos||0}" class="w-full mt-2" oninput="atualizarSimCenario(${dre.totalFixo},${dre.totalDespesas},${ticketMedioGeral||0})">
+        </div>
+        <div id="simResultado" class="text-sm space-y-1"></div>
+      </div>
+    </div>
+    <div class="card">
       <div class="section-title">📈 Evolução 6 Meses</div>
       <canvas id="grafico" height="120"></canvas>
     </div>
   </div>`;
   renderGrafico();
+  atualizarSimCenario(dre.totalFixo, dre.totalDespesas, ticketMedioGeral||0);
+}
+
+function atualizarSimCenario(totalFixo, totalDespesas, ticket) {
+  const qtd=+(document.getElementById('simQtd')||{value:0}).value||0;
+  document.getElementById('simQtdLabel').textContent=qtd;
+  const receita=ticket*qtd;
+  const resultado=receita-totalFixo-totalDespesas;
+  const el=document.getElementById('simResultado'); if(!el) return;
+  el.innerHTML=`
+    <div class="flex justify-between"><span class="text-gray-500">Receita estimada:</span><span class="font-semibold">${fmtBRL(receita)}</span></div>
+    <div class="flex justify-between"><span class="text-gray-500">Custos totais:</span><span class="text-red-500">${fmtBRL(totalFixo+totalDespesas)}</span></div>
+    <div class="flex justify-between border-t pt-1 font-bold ${resultado>=0?'text-green-600':'text-red-600'}">
+      <span>Resultado:</span><span>${fmtBRL(resultado)}</span>
+    </div>
+    <div class="text-xs ${resultado>=0?'text-green-500':'text-orange-500'}">${resultado>=0?'✓ Lucrativo neste cenário':'⚠ Ainda no prejuízo'}</div>`;
 }
 
 function renderGrafico() {
@@ -359,7 +429,15 @@ function renderListaProcs() {
   const el=document.getElementById('listaProcs');
   if(!el) return;
   if(!S.procs.length){ el.innerHTML='<div class="text-center text-gray-400 py-8">Nenhum procedimento cadastrado</div>'; return; }
-  el.innerHTML=S.procs.map(p=>{
+  // ordenar por margem de lucro desc
+  const procsOrdenados=[...S.procs].sort((a,b)=>{
+    const mA=+a.preco>0?(+a.preco-calcPreco(0,0).custoTotal)/+a.preco*100:0;
+    const calcA=calcPreco(a.ficha?.reduce((s,f)=>{const ins=S.insumos.find(i=>i.id===f.insumo_id);return s+(ins?(+ins.custo||0)*(+f.qtd||0):0);},0)||0,+a.tempo||0);
+    const calcB=calcPreco(b.ficha?.reduce((s,f)=>{const ins=S.insumos.find(i=>i.id===f.insumo_id);return s+(ins?(+ins.custo||0)*(+f.qtd||0):0);},0)||0,+b.tempo||0);
+    const lucroA=+a.preco-calcA.custoTotal; const lucroB=+b.preco-calcB.custoTotal;
+    return lucroB-lucroA;
+  });
+  el.innerHTML=procsOrdenados.map((p,idx)=>{
     const ficha=Array.isArray(p.ficha)?p.ficha:[];
     const custoIns=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0);
     const calc=calcPreco(custoIns,+p.tempo||0);
@@ -370,7 +448,10 @@ function renderListaProcs() {
     return `<div class="card">
       <div class="flex items-start justify-between gap-3">
         <div class="flex-1">
-          <div class="font-semibold text-gray-800">${escHtml(p.nome)}</div>
+          <div class="font-semibold text-gray-800 flex items-center gap-2">
+            ${idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':''}
+            ${escHtml(p.nome)}
+          </div>
           <div class="text-xs text-gray-500">${p.tempo||0} min</div>
         </div>
         <div class="text-right flex-shrink-0">
@@ -455,19 +536,19 @@ function atualizarSim() {
 }
 async function salvarProc() {
   const nome=document.getElementById('fp_nome').value.trim();
-  if(!nome) return alert('Informe o nome');
+  if(!nome) return showToast('Informe o nome','error');
   const id=editingProcId||uid();
   const obj={id,nome,tempo:+(document.getElementById('fp_tempo').value)||0,
     preco:+(document.getElementById('fp_preco').value)||0,
     ficha:fichaTemp.filter(f=>f.insumo_id)};
   S.procs=S.procs.filter(p=>p.id!==id); S.procs.push(obj);
   lsSave('procs',S.procs); await cloudUpsert('procedimentos',obj);
-  fecharModalProc(); renderProcedimentos();
+  fecharModalProc(); renderProcedimentos(); showToast('Procedimento salvo ✓');
 }
 async function deletarProc(id) {
   if(!confirm('Excluir procedimento?')) return;
   S.procs=S.procs.filter(p=>p.id!==id); lsSave('procs',S.procs);
-  await cloudDelete('procedimentos',id); renderListaProcs();
+  await cloudDelete('procedimentos',id); renderListaProcs(); showToast('Procedimento excluído');
 }
 
 // ══════════════════ ESTOQUE ══════════════════
@@ -477,6 +558,7 @@ function renderEstoque() {
     <div class="flex items-center justify-between">
       <h2 class="text-xl font-bold text-gray-800">📦 Estoque</h2>
       <div class="flex gap-2 no-print">
+        <button onclick="alertarWhatsApp()" class="btn btn-ghost btn-sm">📲 Alerta WhatsApp</button>
         <button onclick="abrirModalCompra()" class="btn btn-ghost btn-sm">🛒 Registrar Compra</button>
         <button onclick="abrirModalInsumo()" class="btn btn-primary btn-sm">+ Insumo</button>
       </div>
@@ -572,7 +654,7 @@ function abrirModalInsumo(id=null) {
 }
 function fecharModalInsumo(){ document.getElementById('modalInsumo').classList.add('hidden'); }
 async function salvarInsumo() {
-  const nome=document.getElementById('fi_nome').value.trim(); if(!nome) return alert('Informe o nome');
+  const nome=document.getElementById('fi_nome').value.trim(); if(!nome) return showToast('Informe o nome','error');
   const id=editingInsumoId||uid();
   const obj={id,nome,categoria:document.getElementById('fi_cat').value.trim()||'Geral',
     unidade:document.getElementById('fi_unidade').value.trim(),
@@ -581,12 +663,18 @@ async function salvarInsumo() {
     estoque_min:+document.getElementById('fi_min').value||0};
   S.insumos=S.insumos.filter(i=>i.id!==id); S.insumos.push(obj);
   lsSave('insumos',S.insumos); await cloudUpsert('insumos',obj);
-  fecharModalInsumo(); renderTbodyInsumos();
+  fecharModalInsumo(); renderTbodyInsumos(); showToast('Insumo salvo ✓');
 }
 async function deletarInsumo(id) {
   if(!confirm('Excluir insumo?')) return;
   S.insumos=S.insumos.filter(i=>i.id!==id); lsSave('insumos',S.insumos);
-  await cloudDelete('insumos',id); renderTbodyInsumos();
+  await cloudDelete('insumos',id); renderTbodyInsumos(); showToast('Insumo excluído');
+}
+function alertarWhatsApp() {
+  const baixos=S.insumos.filter(i=>(+i.estoque||0)<=(+i.estoque_min||0)&&(+i.estoque_min||0)>0);
+  if(!baixos.length) return showToast('Nenhum insumo em alerta de estoque','warn');
+  const msg=`⚠️ *Alerta de Estoque — Clínica Dra Mariana*\n\n`+baixos.map(i=>`• *${i.nome}*: ${i.estoque||0} ${i.unidade||'un'} (mín: ${i.estoque_min})`).join('\n')+`\n\n_Sistema de Gestão Financeira_`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
 }
 function abrirModalCompra(){ document.getElementById('modalCompra').classList.remove('hidden'); }
 function fecharModalCompra(){ document.getElementById('modalCompra').classList.add('hidden'); }
@@ -601,7 +689,7 @@ async function salvarCompra() {
   const obj={id,data,insumo_id:insumoId,insumo_nome:ins?ins.nome:'',qtd,valor_total:valor};
   S.compras.push(obj); lsSave('compras',S.compras); await cloudUpsert('compras_estoque',obj);
   if(ins){ ins.estoque=(+ins.estoque||0)+qtd; S.insumos=S.insumos.map(i=>i.id===ins.id?ins:i); lsSave('insumos',S.insumos); await cloudUpsert('insumos',ins); }
-  fecharModalCompra(); renderEstoque();
+  fecharModalCompra(); renderEstoque(); showToast('Compra registrada ✓');
 }
 
 // ══════════════════ ATENDIMENTOS ══════════════════
@@ -670,28 +758,55 @@ function renderListaAtend() {
     <td class="p-2 text-xs text-gray-500">${escHtml(r.paciente_nome||'-')}</td>
     <td class="p-2 text-center font-semibold">${fmtBRL(r.preco)}</td>
     <td class="p-2 text-center"><span class="tag tag-blue">${r.pagamento||'-'}</span></td>
-    <td class="p-2 text-center no-print"><button onclick="deletarAtend('${r.id}')" class="btn btn-sm btn-danger">🗑</button></td>
+    <td class="p-2 text-center no-print">
+      <button onclick="editarAtend('${r.id}')" class="btn btn-sm btn-secondary">✏</button>
+      <button onclick="deletarAtend('${r.id}')" class="btn btn-sm btn-danger">🗑</button>
+    </td>
   </tr>`).join('')}</tbody></table>`;
 }
+function abrirModalAtend(){ const m=document.getElementById('modalAtend'); m.dataset.editId=''; m.classList.remove('hidden'); }
 function fecharModalAtend(){ document.getElementById('modalAtend').classList.add('hidden'); }
+function editarAtend(id) {
+  const r=S.regs.find(x=>x.id===id); if(!r) return;
+  abrirModalAtend();
+  setTimeout(()=>{
+    document.getElementById('fa_data').value=r.data||'';
+    const ps=document.getElementById('fa_paciente'); if(ps) ps.value=r.paciente_id||'';
+    const pr=document.getElementById('fa_proc'); if(pr){ pr.value=r.proc_id||''; preencherAtendProc(); }
+    document.getElementById('fa_preco').value=r.preco||'';
+    const pg=document.getElementById('fa_pag'); if(pg) pg.value=r.pagamento||'Dinheiro';
+    // store id to overwrite on save
+    document.getElementById('modalAtend').dataset.editId=id;
+  },50);
+}
 async function salvarAtend() {
   const data=document.getElementById('fa_data').value;
   const procId=document.getElementById('fa_proc').value;
   const pacId=document.getElementById('fa_paciente').value;
   const preco=+document.getElementById('fa_preco').value||0;
   const pagamento=document.getElementById('fa_pag').value;
-  if(!data||!procId) return alert('Informe data e procedimento');
+  if(!data||!procId) return showToast('Informe data e procedimento','error');
   const proc=S.procs.find(p=>p.id===procId);
   const pac=S.pacientes.find(p=>p.id===pacId);
   const ficha=proc&&Array.isArray(proc.ficha)?proc.ficha:[];
   const custoInsumos=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0);
   const cm=calcCustoMinuto(); const custoTempo=cm*(+(proc&&proc.tempo)||0);
   const parcelas=parseInt((pagamento.match(/(\d+)x/)||[0,1])[1])||1;
-  const id=uid();
+  const editId=document.getElementById('modalAtend').dataset.editId||'';
+  if(editId){ S.regs=S.regs.filter(r=>r.id!==editId); S.recebimentos=S.recebimentos.filter(r=>r.reg_id!==editId); await cloudDelete('registros',editId); }
+  document.getElementById('modalAtend').dataset.editId='';
+  const id=editId||uid();
   const obj={id,data,proc_id:procId,proc_nome:proc?proc.nome:'',
     paciente_id:pacId||null,paciente_nome:pac?pac.nome:'',
     preco,pagamento,parcelas,custo_insumos:custoInsumos,custo_tempo:custoTempo};
   S.regs.push(obj); lsSave('regs',S.regs); await cloudUpsert('registros',obj);
+  // validar estoque antes de baixar
+  const alertasEstoque=[];
+  for(const f of ficha){
+    const ins=S.insumos.find(i=>i.id===f.insumo_id);
+    if(ins&&(+ins.estoque||0)<(+f.qtd||0)) alertasEstoque.push(`${ins.nome}: tem ${ins.estoque} ${ins.unidade||'un'}, precisa ${f.qtd}`);
+  }
+  if(alertasEstoque.length>0&&!confirm(`⚠️ Estoque insuficiente:\n${alertasEstoque.join('\n')}\n\nRegistrar mesmo assim?`)) return;
   for(const f of ficha){
     const ins=S.insumos.find(i=>i.id===f.insumo_id);
     if(ins){ ins.estoque=Math.max(0,(+ins.estoque||0)-(+f.qtd||0)); S.insumos=S.insumos.map(i=>i.id===ins.id?ins:i); await cloudUpsert('insumos',ins); }
@@ -707,14 +822,14 @@ async function salvarAtend() {
     S.recebimentos.push(rec); await cloudUpsert('recebimentos',rec);
   }
   lsSave('recebimentos',S.recebimentos);
-  fecharModalAtend(); renderListaAtend();
+  fecharModalAtend(); renderListaAtend(); showToast('Atendimento registrado ✓');
 }
 async function deletarAtend(id) {
   if(!confirm('Excluir atendimento?')) return;
   S.regs=S.regs.filter(r=>r.id!==id);
   S.recebimentos=S.recebimentos.filter(r=>r.reg_id!==id);
   lsSave('regs',S.regs); lsSave('recebimentos',S.recebimentos);
-  await cloudDelete('registros',id); renderListaAtend();
+  await cloudDelete('registros',id); renderListaAtend(); showToast('Atendimento excluído');
 }
 
 // ══════════════════ PACIENTES ══════════════════
@@ -802,12 +917,12 @@ async function salvarPac() {
     observacoes:document.getElementById('fp2_obs').value.trim()};
   S.pacientes=S.pacientes.filter(p=>p.id!==id); S.pacientes.push(obj);
   lsSave('pacientes',S.pacientes); await cloudUpsert('pacientes',obj);
-  fecharModalPac(); renderListaPac();
+  fecharModalPac(); renderListaPac(); showToast('Paciente salvo ✓');
 }
 async function deletarPac(id) {
   if(!confirm('Excluir paciente?')) return;
   S.pacientes=S.pacientes.filter(p=>p.id!==id); lsSave('pacientes',S.pacientes);
-  await cloudDelete('pacientes',id); renderListaPac();
+  await cloudDelete('pacientes',id); renderListaPac(); showToast('Paciente excluído');
 }
 
 // ══════════════════ FINANCEIRO ══════════════════
@@ -922,12 +1037,12 @@ async function salvarDesp() {
   const id=uid();
   const obj={id,data:document.getElementById('fd_data').value,descricao:desc,categoria:document.getElementById('fd_cat').value,valor};
   S.despesas.push(obj); lsSave('despesas',S.despesas); await cloudUpsert('despesas_variaveis',obj);
-  fecharModalDesp(); renderListaDesp();
+  fecharModalDesp(); renderListaDesp(); showToast('Despesa salva ✓');
 }
 async function deletarDesp(id) {
   if(!confirm('Excluir despesa?')) return;
   S.despesas=S.despesas.filter(d=>d.id!==id); lsSave('despesas',S.despesas);
-  await cloudDelete('despesas_variaveis',id); renderListaDesp();
+  await cloudDelete('despesas_variaveis',id); renderListaDesp(); showToast('Despesa excluída');
 }
 function renderMetas(el) {
   el.innerHTML=`<div class="space-y-4">
@@ -993,12 +1108,12 @@ async function salvarMeta() {
   const obj={id,mes,faturamento:fat,atendimentos:atend};
   S.metas=S.metas.filter(m=>m.id!==id); S.metas.push(obj);
   lsSave('metas',S.metas); await cloudUpsert('metas_mensais',obj);
-  fecharModalMeta(); renderListaMetas();
+  fecharModalMeta(); renderListaMetas(); showToast('Meta salva ✓');
 }
 async function deletarMeta(id) {
   if(!confirm('Excluir meta?')) return;
   S.metas=S.metas.filter(m=>m.id!==id); lsSave('metas',S.metas);
-  await cloudDelete('metas_mensais',id); renderListaMetas();
+  await cloudDelete('metas_mensais',id); renderListaMetas(); showToast('Meta excluída');
 }
 
 // ══════════════════ RELATÓRIOS ══════════════════
@@ -1170,12 +1285,12 @@ async function salvarFixo() {
   const obj={id,descricao:desc,valor:+document.getElementById('ff_valor').value||0};
   S.fixos=S.fixos.filter(f=>f.id!==id); S.fixos.push(obj);
   lsSave('fixos',S.fixos); await cloudUpsert('custos_fixos',obj);
-  fecharModalFixo(); renderListaFixos();
+  fecharModalFixo(); renderListaFixos(); showToast('Custo fixo salvo ✓');
 }
 async function deletarFixo(id) {
   if(!confirm('Excluir custo fixo?')) return;
   S.fixos=S.fixos.filter(f=>f.id!==id); lsSave('fixos',S.fixos);
-  await cloudDelete('custos_fixos',id); renderListaFixos();
+  await cloudDelete('custos_fixos',id); renderListaFixos(); showToast('Custo fixo excluído');
 }
 
 // ══════════════════ INIT ══════════════════
