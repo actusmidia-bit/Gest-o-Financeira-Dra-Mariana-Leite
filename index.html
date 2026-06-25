@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dra Mariana Leite | Gestão Financeira</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fundo: { principal: '#F5F4EF', suave: '#FBFAF7' },
+                        bege: { pedra: '#E2D5C3' },
+                        verde: { escuro: '#5F674C', principal: '#899173', oliva: '#747D5D', claro: '#A6AD93' },
+                        rose: '#B26768',
+                        texto: '#4B423A'
+                    },
+                    fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        @media print {
+            #tela-login, aside, header, #filtro-mes, .no-print { display: none !important; }
+            body { background: white !important; }
+            #app { display: block !important; }
+            main { overflow: visible !important; height: auto !important; }
+            .aba-page { display: none !important; }
+            #page-dashboard { display: block !important; padding: 0 !important; }
+            #print-dre { display: block !important; }
+            #dre-content, #kpi-row { break-inside: avoid; }
+        }
+        #print-dre { display: none; }
+        .has-tooltip:hover .tooltip { visibility: visible; opacity: 1; }
+        .tooltip { visibility: hidden; opacity: 0; transition: opacity 0.2s; }
+        .custom-checkbox { accent-color: #899173; }
+        .badge-alert { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+        .modal-overlay { backdrop-filter: blur(3px); }
+        input:focus, select:focus { outline: none; box-shadow: 0 0 0 2px #899173; border-color: #899173; }
+        .tab-active { background: rgba(166,173,147,0.2) !important; color: #5F674C !important; border-left-color: #899173 !important; font-weight: 600; }
+        .tab-active i { color: #5F674C !important; }
+        ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #F5F4EF; } ::-webkit-scrollbar-thumb { background: #E2D5C3; border-radius: 3px; }
+        #sync-indicator { transition: opacity 0.3s; }
+    </style>
+</head>
+<body class="bg-fundo-principal text-texto font-sans">
+
+<!-- ========== TELA DE LOGIN ========== -->
+<div id="tela-login" class="fixed inset-0 z-50 bg-fundo-principal flex items-center justify-center p-4">
+    <div class="w-full max-w-sm">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 rounded-full bg-verde-principal flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4 shadow-lg">ML</div>
+            <h1 class="text-2xl font-bold text-verde-escuro">Dra Mariana Leite</h1>
+            <p class="text-sm text-verde-oliva mt-1">Inteligência Financeira · Clínica</p>
+        </div>
+
+        <div class="bg-fundo-suave rounded-2xl border border-bege-pedra shadow-lg p-6 space-y-4">
+            <div id="login-erro" class="hidden bg-rose/10 border border-rose/30 text-rose text-sm px-4 py-2.5 rounded-lg">
+                <i class="fas fa-exclamation-circle mr-2"></i><span id="login-erro-msg"></span>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1.5 text-verde-escuro">E-mail</label>
+                <input type="email" id="login-email" placeholder="dra@clinica.com.br"
+                    class="w-full px-4 py-2.5 border border-bege-pedra rounded-xl bg-white text-sm"
+                    onkeydown="if(event.key==='Enter') auth.entrar()">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1.5 text-verde-escuro">Senha</label>
+                <div class="relative">
+                    <input type="password" id="login-senha" placeholder="••••••••"
+                        class="w-full px-4 py-2.5 border border-bege-pedra rounded-xl bg-white text-sm pr-10"
+                        onkeydown="if(event.key==='Enter') auth.entrar()">
+                    <button onclick="auth.toggleSenha()" class="absolute right-3 top-1/2 -translate-y-1/2 text-texto/40 hover:text-texto/70">
+                        <i id="icone-senha" class="fas fa-eye text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="auth.entrar()" id="btn-login"
+                class="w-full bg-verde-principal text-white py-3 rounded-xl font-semibold hover:bg-verde-escuro transition shadow-sm mt-2">
+                <i class="fas fa-sign-in-alt mr-2"></i>Entrar
+            </button>
+
+            <div id="modo-criar" class="hidden space-y-4 border-t border-bege-pedra pt-4">
+                <p class="text-xs text-texto/60 text-center">Primeira vez? Crie sua conta com a senha que você escolheu.</p>
+                <button onclick="auth.criarConta()" id="btn-criar"
+                    class="w-full bg-verde-escuro/10 text-verde-escuro py-2.5 rounded-xl font-semibold hover:bg-verde-escuro/20 transition text-sm border border-verde-claro">
+                    <i class="fas fa-user-plus mr-2"></i>Criar Conta
+                </button>
+            </div>
+
+            <button onclick="auth.toggleModoCriar()" class="w-full text-xs text-verde-oliva hover:text-verde-principal transition text-center pt-1">
+                <span id="texto-toggle-modo">Primeiro acesso? Criar conta</span>
+            </button>
+        </div>
+        <p class="text-center text-xs text-texto/30 mt-6">Dados protegidos · Supabase Cloud</p>
+    </div>
+</div>
+
+<!-- ========== APP PRINCIPAL ========== -->
+<div id="app" class="hidden flex h-screen overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-fundo-suave border-r border-bege-pedra flex flex-col z-20 flex-shrink-0">
+        <div class="h-20 flex items-center px-6 border-b border-bege-pedra">
+            <div class="w-10 h-10 rounded-full bg-verde-principal flex items-center justify-center text-white font-bold text-xl mr-3 flex-shrink-0">ML</div>
+            <div class="min-w-0">
+                <h1 class="font-bold text-sm text-verde-escuro uppercase leading-tight truncate">Dra Mariana Leite</h1>
+                <p class="text-xs text-verde-oliva">Gestão Estratégica</p>
+            </div>
+        </div>
+        <nav class="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
+            <button onclick="app.goTo('dashboard')" id="nav-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors border-l-4 border-transparent text-texto hover:bg-bege-pedra/30">
+                <i class="fas fa-chart-pie w-5 text-verde-oliva"></i><span>Dashboard & DRE</span>
+            </button>
+            <button onclick="app.goTo('procedimentos')" id="nav-procedimentos" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors border-l-4 border-transparent text-texto hover:bg-bege-pedra/30">
+                <i class="fas fa-calculator w-5 text-verde-oliva"></i><span>Procedimentos</span>
+            </button>
+            <button onclick="app.goTo('estoque')" id="nav-estoque" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors border-l-4 border-transparent text-texto hover:bg-bege-pedra/30">
+                <i class="fas fa-box-open w-5 text-verde-oliva"></i><span>Estoque</span>
+                <span id="badge-estoque" class="hidden ml-auto bg-rose text-white text-xs rounded-full w-5 h-5 flex items-center justify-center badge-alert font-bold"></span>
+            </button>
+            <button onclick="app.goTo('registros')" id="nav-registros" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors border-l-4 border-transparent text-texto hover:bg-bege-pedra/30">
+                <i class="fas fa-clipboard-list w-5 text-verde-oliva"></i><span>Atendimentos</span>
+            </button>
+            <button onclick="app.goTo('configuracoes')" id="nav-configuracoes" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors border-l-4 border-transparent text-texto hover:bg-bege-pedra/30">
+                <i class="fas fa-sliders-h w-5 text-verde-oliva"></i><span>Configurações</span>
+            </button>
+        </nav>
+        <div class="p-4 border-t border-bege-pedra space-y-2">
+            <div id="sync-indicator" class="text-xs flex items-center gap-2 text-verde-oliva">
+                <i id="sync-icon" class="fas fa-cloud-upload-alt"></i>
+                <span id="sync-msg">Sincronizado</span>
+            </div>
+            <button onclick="auth.sair()" class="w-full text-xs text-texto/40 hover:text-rose transition flex items-center gap-2 px-1">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+        <header class="h-20 bg-fundo-suave border-b border-bege-pedra flex items-center justify-between px-8 shadow-sm flex-shrink-0">
+            <h2 class="text-xl font-semibold text-verde-escuro" id="header-title">Dashboard & DRE</h2>
+            <span id="badge-custo-minuto" class="text-sm font-bold bg-verde-principal text-white px-4 py-2 rounded-full shadow-sm has-tooltip relative cursor-help">
+                Custo/min: R$ 0,00
+                <span class="tooltip absolute bg-verde-escuro text-white text-xs rounded p-2 z-50 w-56" style="bottom:130%;right:0">Custo da clínica por minuto baseado nas despesas fixas mensais.</span>
+            </span>
+        </header>
+
+        <!-- DASHBOARD -->
+        <section id="page-dashboard" class="p-8 aba-page">
+            <div class="max-w-6xl mx-auto space-y-6">
+                <div class="flex items-center gap-4">
+                    <label class="text-sm font-medium text-verde-escuro">Período:</label>
+                    <input type="month" id="filtro-mes" class="px-3 py-1.5 border border-bege-pedra rounded-lg bg-white text-sm" onchange="app.renderDashboard()">
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-fundo-suave rounded-xl border border-bege-pedra p-5 shadow-sm">
+                        <p class="text-xs text-verde-oliva uppercase tracking-wide mb-1">Faturamento</p>
+                        <p class="text-2xl font-bold text-verde-escuro" id="kpi-faturamento">R$ 0,00</p>
+                        <p class="text-xs text-texto/50 mt-1" id="kpi-atendimentos">0 atendimentos</p>
+                    </div>
+                    <div class="bg-fundo-suave rounded-xl border border-bege-pedra p-5 shadow-sm">
+                        <p class="text-xs text-verde-oliva uppercase tracking-wide mb-1">Custo Variável</p>
+                        <p class="text-2xl font-bold text-rose" id="kpi-custo-variavel">R$ 0,00</p>
+                        <p class="text-xs text-texto/50 mt-1">Insumos + cabine</p>
+                    </div>
+                    <div class="bg-fundo-suave rounded-xl border border-bege-pedra p-5 shadow-sm">
+                        <p class="text-xs text-verde-oliva uppercase tracking-wide mb-1">Custo Fixo</p>
+                        <p class="text-2xl font-bold text-rose" id="kpi-custo-fixo">R$ 0,00</p>
+                        <p class="text-xs text-texto/50 mt-1">Despesas mensais</p>
+                    </div>
+                    <div class="bg-verde-escuro rounded-xl p-5 shadow-sm">
+                        <p class="text-xs text-verde-claro uppercase tracking-wide mb-1">Lucro Operacional</p>
+                        <p class="text-2xl font-bold text-white" id="kpi-lucro">R$ 0,00</p>
+                        <p class="text-xs text-verde-claro/70 mt-1" id="kpi-margem">Margem: 0%</p>
+                    </div>
+                </div>
+                <!-- Gráfico evolução -->
+                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-6 no-print">
+                    <h3 class="font-semibold text-verde-escuro mb-4">Evolução dos Últimos 6 Meses</h3>
+                    <canvas id="grafico-evolucao" height="100"></canvas>
+                </div>
+
+                <!-- DRE -->
+                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-bege-pedra bg-bege-pedra/20 flex justify-between items-center">
+                        <h3 class="font-semibold text-verde-escuro">Demonstrativo de Resultado — DRE</h3>
+                        <button onclick="app.imprimirDRE()" class="no-print text-sm bg-verde-principal text-white px-4 py-1.5 rounded-lg hover:bg-verde-escuro transition">
+                            <i class="fas fa-file-pdf mr-2"></i>Exportar PDF
+                        </button>
+                    </div>
+                    <div class="p-6" id="dre-content">
+                        <p class="text-sm text-texto/40 text-center py-6">Registre atendimentos para visualizar o DRE.</p>
+                    </div>
+                </div>
+
+                <!-- Análise de preços -->
+                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm overflow-hidden no-print">
+                    <div class="px-6 py-4 border-b border-bege-pedra bg-bege-pedra/20">
+                        <h3 class="font-semibold text-verde-escuro">Análise de Preços — Cobrado vs. Sugerido</h3>
+                    </div>
+                    <div id="analise-precos" class="p-4">
+                        <p class="text-sm text-texto/40 text-center py-4">Sem dados suficientes.</p>
+                    </div>
+                </div>
+                <!-- Últimos -->
+                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-bege-pedra bg-bege-pedra/20 flex justify-between items-center">
+                        <h3 class="font-semibold text-verde-escuro">Últimos Atendimentos</h3>
+                        <button onclick="app.goTo('registros')" class="text-sm text-verde-principal hover:underline">Ver todos →</button>
+                    </div>
+                    <div id="dashboard-registros"><p class="text-sm text-texto/40 text-center py-8">Nenhum atendimento registrado.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROCEDIMENTOS -->
+        <section id="page-procedimentos" class="p-8 aba-page hidden">
+            <div class="max-w-5xl mx-auto space-y-5">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-verde-escuro">Procedimentos Cadastrados</h3>
+                    <button onclick="app.abrirModalProcedimento()" class="bg-verde-principal text-white px-5 py-2 rounded-lg font-medium shadow-sm hover:bg-verde-escuro transition text-sm">
+                        <i class="fas fa-plus mr-2"></i>Novo Procedimento
+                    </button>
+                </div>
+                <div id="lista-procedimentos">
+                    <p class="text-sm text-texto/40 text-center py-10 bg-fundo-suave rounded-xl border border-bege-pedra">Nenhum procedimento cadastrado.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ESTOQUE -->
+        <section id="page-estoque" class="p-8 aba-page hidden">
+            <div class="max-w-5xl mx-auto space-y-5">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-verde-escuro">Controle de Estoque</h3>
+                    <div class="flex gap-3">
+                        <button onclick="app.alertarWhatsApp()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-green-700 transition text-sm">
+                            <i class="fab fa-whatsapp mr-2"></i>Alertar Estoque Baixo
+                        </button>
+                        <button onclick="app.abrirModalInsumo()" class="bg-verde-principal text-white px-5 py-2 rounded-lg font-medium shadow-sm hover:bg-verde-escuro transition text-sm">
+                            <i class="fas fa-plus mr-2"></i>Novo Insumo
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-bege-pedra/30 text-verde-escuro text-xs uppercase tracking-wide">
+                                <th class="px-4 py-3">Produto</th>
+                                <th class="px-4 py-3">Categoria</th>
+                                <th class="px-4 py-3">Unidade</th>
+                                <th class="px-4 py-3 text-right">Custo Unit.</th>
+                                <th class="px-4 py-3 text-center">Estoque</th>
+                                <th class="px-4 py-3 text-center">Status</th>
+                                <th class="px-4 py-3 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-estoque">
+                            <tr><td colspan="7" class="text-center text-sm text-texto/40 py-8">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- REGISTROS -->
+        <section id="page-registros" class="p-8 aba-page hidden">
+            <div class="max-w-5xl mx-auto space-y-6">
+                <!-- Form -->
+                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-6">
+                    <h3 class="font-semibold text-verde-escuro mb-4 pb-3 border-b border-bege-pedra">Registrar Atendimento</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium mb-1">Data</label>
+                            <input type="date" id="reg-data" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+                        <div><label class="block text-sm font-medium mb-1">Procedimento</label>
+                            <select id="reg-procedimento" onchange="app.preencherRegistro()" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm">
+                                <option value="">Selecione...</option>
+                            </select></div>
+                        <div><label class="block text-sm font-medium mb-1">Preço Cobrado (R$)</label>
+                            <input type="number" id="reg-preco" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+                        <div><label class="block text-sm font-medium mb-1">Forma de Pagamento</label>
+                            <select id="reg-pagamento" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm">
+                                <option>Dinheiro</option><option>Pix</option><option>Débito</option>
+                                <option>Crédito à Vista</option><option>Crédito Parcelado</option>
+                            </select></div>
+                    </div>
+                    <div id="reg-resumo" class="hidden mt-4 p-4 bg-fundo-principal rounded-lg border border-bege-pedra text-sm">
+                        <p class="font-semibold text-verde-escuro mb-2">Resumo de Custos do Procedimento</p>
+                        <div class="flex justify-between text-texto/70 mb-1"><span>Insumos:</span><span id="reg-custo-insumos">R$ 0,00</span></div>
+                        <div class="flex justify-between text-texto/70 mb-1"><span>Tempo de Cabine:</span><span id="reg-custo-tempo">R$ 0,00</span></div>
+                        <div class="flex justify-between font-semibold text-verde-escuro border-t border-bege-pedra pt-2 mt-1"><span>Custo Direto:</span><span id="reg-custo-total">R$ 0,00</span></div>
+                        <div id="reg-alerta-estoque" class="hidden mt-2 p-2 bg-rose/10 text-rose text-xs rounded border border-rose/20">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>Estoque insuficiente para um ou mais insumos.
+                        </div>
+                    </div>
+                    <div class="flex justify-end mt-5">
+                        <button onclick="app.registrarAtendimento()" class="bg-verde-principal text-white px-8 py-2.5 rounded-lg font-semibold shadow-md hover:bg-verde-escuro transition text-sm">
+                            <i class="fas fa-check mr-2"></i>Registrar e Dar Baixa no Estoque
+                        </button>
+                    </div>
+                </div>
+                <!-- Histórico -->
+                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-bege-pedra bg-bege-pedra/20 flex justify-between items-center">
+                        <h3 class="font-semibold text-verde-escuro">Histórico</h3>
+                        <input type="month" id="filtro-mes-reg" class="px-3 py-1 border border-bege-pedra rounded-lg bg-white text-xs" onchange="app.renderHistorico()">
+                    </div>
+                    <div id="historico-registros"><p class="text-sm text-texto/40 text-center py-8">Nenhum atendimento.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONFIGURAÇÕES -->
+        <section id="page-configuracoes" class="p-8 aba-page hidden">
+            <div class="max-w-3xl mx-auto space-y-6">
+                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-6">
+                    <div class="flex justify-between items-center mb-4 border-b border-bege-pedra pb-3">
+                        <h3 class="font-semibold text-verde-escuro">Custos Fixos Mensais</h3>
+                        <button onclick="app.addCustoFixo()" class="text-sm text-verde-principal hover:underline"><i class="fas fa-plus mr-1"></i>Adicionar</button>
+                    </div>
+                    <div id="lista-custos-fixos" class="space-y-2"></div>
+                    <div class="flex justify-between items-center mt-4 pt-4 border-t border-bege-pedra">
+                        <span class="font-bold text-verde-escuro">Total Mensal:</span>
+                        <span class="font-bold text-xl text-verde-escuro" id="total-fixo">R$ 0,00</span>
+                    </div>
+                </div>
+                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-6">
+                    <h3 class="font-semibold text-verde-escuro mb-4 border-b border-bege-pedra pb-3">Capacidade Produtiva</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Horas Produtivas / Mês</label>
+                            <input type="number" id="cfg-horas" step="0.1" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm" onchange="app.salvarConfig()">
+                        </div>
+                        <div class="flex items-end">
+                            <div class="bg-verde-claro/20 border border-verde-principal px-4 py-2.5 rounded-lg w-full text-center">
+                                <p class="text-xs text-verde-oliva">Custo por Minuto</p>
+                                <p class="font-bold text-verde-escuro" id="cfg-custo-min">R$ 0,0000</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-6">
+                    <h3 class="font-semibold text-verde-escuro mb-4 border-b border-bege-pedra pb-3">Taxas Padrão (Simulador)</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div><label class="block text-sm font-medium mb-1">Impostos (%)</label>
+                            <input type="number" id="cfg-imposto" step="0.1" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm" onchange="app.salvarConfig()"></div>
+                        <div><label class="block text-sm font-medium mb-1">Cartão (%)</label>
+                            <input type="number" id="cfg-cartao" step="0.1" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm" onchange="app.salvarConfig()"></div>
+                        <div><label class="block text-sm font-medium mb-1">Lucro Desejado (%)</label>
+                            <input type="number" id="cfg-lucro" step="0.1" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm" onchange="app.salvarConfig()"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- ===== MODAL PROCEDIMENTO ===== -->
+<div id="modal-procedimento" class="hidden fixed inset-0 bg-black/40 modal-overlay flex items-center justify-center z-50 p-4">
+    <div class="bg-fundo-suave rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center px-6 py-4 border-b border-bege-pedra">
+            <h3 class="font-bold text-verde-escuro text-lg" id="modal-proc-titulo">Novo Procedimento</h3>
+            <button onclick="app.fecharModal('modal-procedimento')" class="text-texto/30 hover:text-rose text-xl transition"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="overflow-y-auto flex-1 p-6 space-y-5">
+            <input type="hidden" id="mp-id">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2"><label class="block text-sm font-medium mb-1">Nome *</label>
+                    <input type="text" id="mp-nome" placeholder="Ex: Toxina Botulínica Testa" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+                <div><label class="block text-sm font-medium mb-1">Tempo de Cabine (min) *</label>
+                    <input type="number" id="mp-tempo" placeholder="60" oninput="app.calcularCustoProc()" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+                <div><label class="block text-sm font-medium mb-1">Preço de Venda (R$)</label>
+                    <input type="number" id="mp-preco" step="0.01" placeholder="0.00" oninput="app.calcularCustoProc()" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+            </div>
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label class="text-sm font-semibold text-verde-escuro">Ficha Técnica de Insumos</label>
+                    <button onclick="app.addLinhaFicha()" class="text-xs text-verde-principal hover:underline"><i class="fas fa-plus mr-1"></i>Adicionar Insumo</button>
+                </div>
+                <div id="ficha-tecnica-linhas" class="space-y-2 bg-fundo-principal p-3 rounded-lg border border-bege-pedra min-h-12">
+                    <p class="text-xs text-texto/40 text-center py-1">Nenhum insumo adicionado.</p>
+                </div>
+                <div class="flex justify-between text-sm font-medium text-verde-escuro mt-2 px-1">
+                    <span>Custo de Insumos:</span><span id="mp-custo-insumos">R$ 0,00</span>
+                </div>
+            </div>
+            <div class="bg-verde-escuro text-white rounded-xl p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <p class="font-semibold text-sm">Simulação de Markup</p>
+                    <button onclick="app.calcularPrecoSugerido()" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition">
+                        <i class="fas fa-bolt mr-1"></i>Calcular Preço Ideal
+                    </button>
+                </div>
+                <div class="grid grid-cols-3 gap-3 text-sm">
+                    <div class="bg-white/10 p-3 rounded-lg"><p class="text-verde-claro text-xs">Custo Direto</p><p class="font-bold" id="mp-sim-custo">R$ 0,00</p></div>
+                    <div class="bg-verde-principal p-3 rounded-lg"><p class="text-white text-xs">Preço Sugerido</p><p class="font-bold text-lg" id="mp-sim-preco">R$ 0,00</p></div>
+                    <div class="bg-white/10 p-3 rounded-lg"><p class="text-verde-claro text-xs">Lucro Líquido</p><p class="font-bold" id="mp-sim-lucro">R$ 0,00</p></div>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 px-6 py-4 border-t border-bege-pedra">
+            <button onclick="app.fecharModal('modal-procedimento')" class="px-5 py-2 border border-bege-pedra rounded-lg text-sm hover:bg-bege-pedra/30 transition">Cancelar</button>
+            <button onclick="app.salvarProcedimento()" class="bg-verde-principal text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-verde-escuro transition">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL INSUMO ===== -->
+<div id="modal-insumo" class="hidden fixed inset-0 bg-black/40 modal-overlay flex items-center justify-center z-50 p-4">
+    <div class="bg-fundo-suave rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex justify-between items-center px-6 py-4 border-b border-bege-pedra">
+            <h3 class="font-bold text-verde-escuro text-lg" id="modal-ins-titulo">Novo Insumo</h3>
+            <button onclick="app.fecharModal('modal-insumo')" class="text-texto/30 hover:text-rose text-xl transition"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-6 space-y-4">
+            <input type="hidden" id="mi-id">
+            <div><label class="block text-sm font-medium mb-1">Nome do Produto *</label>
+                <input type="text" id="mi-nome" placeholder="Ex: Toxina Botulínica 100UI" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="block text-sm font-medium mb-1">Categoria</label>
+                    <input type="text" id="mi-categoria" placeholder="Ex: Químicos" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+                <div><label class="block text-sm font-medium mb-1">Unidade</label>
+                    <input type="text" id="mi-unidade" placeholder="Ex: Ampola" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="block text-sm font-medium mb-1">Custo Unitário (R$) *</label>
+                    <input type="number" id="mi-custo" step="0.0001" placeholder="0.00" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+                <div><label class="block text-sm font-medium mb-1">Estoque Atual</label>
+                    <input type="number" id="mi-estoque" step="0.1" placeholder="0" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+            </div>
+            <div><label class="block text-sm font-medium mb-1">Estoque Mínimo (Alerta)</label>
+                <input type="number" id="mi-estoque-min" step="0.1" placeholder="0" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+        </div>
+        <div class="flex justify-end gap-3 px-6 py-4 border-t border-bege-pedra">
+            <button onclick="app.fecharModal('modal-insumo')" class="px-5 py-2 border border-bege-pedra rounded-lg text-sm hover:bg-bege-pedra/30 transition">Cancelar</button>
+            <button onclick="app.salvarInsumo()" class="bg-verde-principal text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-verde-escuro transition">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL CUSTO FIXO ===== -->
+<div id="modal-custo-fixo" class="hidden fixed inset-0 bg-black/40 modal-overlay flex items-center justify-center z-50 p-4">
+    <div class="bg-fundo-suave rounded-2xl shadow-2xl w-full max-w-sm">
+        <div class="flex justify-between items-center px-6 py-4 border-b border-bege-pedra">
+            <h3 class="font-bold text-verde-escuro" id="modal-cf-titulo">Nova Despesa Fixa</h3>
+            <button onclick="app.fecharModal('modal-custo-fixo')" class="text-texto/30 hover:text-rose text-xl transition"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-6 space-y-4">
+            <input type="hidden" id="mcf-id">
+            <div><label class="block text-sm font-medium mb-1">Descrição *</label>
+                <input type="text" id="mcf-desc" placeholder="Ex: Aluguel" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+            <div><label class="block text-sm font-medium mb-1">Valor Mensal (R$) *</label>
+                <input type="number" id="mcf-valor" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border border-bege-pedra rounded-lg bg-white text-sm"></div>
+        </div>
+        <div class="flex justify-end gap-3 px-6 py-4 border-t border-bege-pedra">
+            <button onclick="app.fecharModal('modal-custo-fixo')" class="px-5 py-2 border border-bege-pedra rounded-lg text-sm hover:bg-bege-pedra/30 transition">Cancelar</button>
+            <button onclick="app.salvarCustoFixo()" class="bg-verde-principal text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-verde-escuro transition">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ================================================================
+//  SISTEMA FINANCEIRO DRA MARIANA LEITE — v2.1
+//  Auth: Supabase | Storage: Supabase + localStorage fallback
+// ================================================================
+
+const SUPA_URL = 'https://slbxxprtdsjrwxpeygog.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsYnh4cHJ0ZHNqcnd4cGV5Z29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMjMwMjYsImV4cCI6MjA5Nzg5OTAyNn0.vomdmn90--Fe3FtnnO5FzRkZ4XBis8zMKQulZ1XqdzM';
+
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── ESTADO GLOBAL ────────────────────────────────────────────────
+const S = {
+    user: null,
+    insumos: [],
+    fixos: [],
+    procs: [],
+    regs: [],
+    cfg: { horas: 139.41, imposto: 6, cartao: 3.5, lucro: 30 }
+};
+
+// ── HELPERS ──────────────────────────────────────────────────────
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+const brl = n => 'R$ ' + Number(n||0).toFixed(2).replace('.', ',');
+const lsKey = k => `gf_${S.user?.id?.slice(0,8)}_${k}`;
+const lsSave = (k, v) => { try { localStorage.setItem(lsKey(k), JSON.stringify(v)); } catch {} };
+const lsLoad = (k) => { try { return JSON.parse(localStorage.getItem(lsKey(k))); } catch { return null; } };
+const custoMinuto = () => {
+    const t = S.fixos.reduce((a,c) => a + Number(c.valor), 0);
+    return t / (S.cfg.horas * 60);
+};
+const custoInsumosFicha = ficha => (ficha||[]).reduce((acc, l) => {
+    const ins = S.insumos.find(i => i.id === l.insumo_id);
+    return acc + (ins ? Number(ins.custo) * Number(l.qtd) : 0);
+}, 0);
+
+// ── SYNC STATUS ──────────────────────────────────────────────────
+function setSyncStatus(estado) {
+    const icon = document.getElementById('sync-icon');
+    const msg = document.getElementById('sync-msg');
+    const ind = document.getElementById('sync-indicator');
+    if (estado === 'syncing') { icon.className = 'fas fa-circle-notch fa-spin'; msg.textContent = 'Sincronizando...'; ind.style.opacity = '1'; }
+    else if (estado === 'ok') { icon.className = 'fas fa-cloud text-verde-principal'; msg.textContent = 'Sincronizado'; ind.style.opacity = '1'; setTimeout(() => ind.style.opacity = '0.5', 2000); }
+    else if (estado === 'offline') { icon.className = 'fas fa-server text-rose'; msg.textContent = 'Modo local (offline)'; ind.style.opacity = '1'; }
+    else if (estado === 'erro') { icon.className = 'fas fa-exclamation-triangle text-rose'; msg.textContent = 'Erro ao sincronizar'; ind.style.opacity = '1'; }
+}
+
+// ── SUPABASE CRUD ────────────────────────────────────────────────
+async function cloudUpsert(tabela, obj) {
+    if (!S.user) return;
+    setSyncStatus('syncing');
+    const { error } = await sb.from(tabela).upsert({ ...obj, user_id: S.user.id });
+    setSyncStatus(error ? 'erro' : 'ok');
+    if (error) console.error('Sync error:', tabela, error.message);
+}
+
+async function cloudDelete(tabela, id) {
+    if (!S.user) return;
+    setSyncStatus('syncing');
+    const { error } = await sb.from(tabela).delete().eq('id', id).eq('user_id', S.user.id);
+    setSyncStatus(error ? 'erro' : 'ok');
+}
+
+async function cloudUpsertConfig() {
+    if (!S.user) return;
+    await sb.from('config_clinica').upsert({ user_id: S.user.id, ...S.cfg, updated_at: new Date().toISOString() });
+}
+
+async function syncFromCloud() {
+    if (!S.user) return;
+    setSyncStatus('syncing');
+    try {
+        const [ri, rf, rp, rr, rc] = await Promise.all([
+            sb.from('insumos').select('*').eq('user_id', S.user.id),
+            sb.from('custos_fixos').select('*').eq('user_id', S.user.id),
+            sb.from('procedimentos').select('*').eq('user_id', S.user.id),
+            sb.from('registros').select('*').eq('user_id', S.user.id).order('data', { ascending: false }),
+            sb.from('config_clinica').select('*').eq('user_id', S.user.id).single()
+        ]);
+
+        if (!ri.error && ri.data?.length > 0) { S.insumos = ri.data; lsSave('insumos', S.insumos); }
+        else { S.insumos = lsLoad('insumos') || insumosPadrao(); if (ri.data?.length === 0) await Promise.all(S.insumos.map(i => cloudUpsert('insumos', i))); }
+
+        if (!rf.error && rf.data?.length > 0) { S.fixos = rf.data; lsSave('fixos', S.fixos); }
+        else { S.fixos = lsLoad('fixos') || fixosPadrao(); if (rf.data?.length === 0) await Promise.all(S.fixos.map(f => cloudUpsert('custos_fixos', f))); }
+
+        if (!rp.error) { S.procs = rp.data || []; lsSave('procs', S.procs); }
+        else S.procs = lsLoad('procs') || [];
+
+        if (!rr.error) { S.regs = rr.data || []; lsSave('regs', S.regs); }
+        else S.regs = lsLoad('regs') || [];
+
+        if (!rc.error && rc.data) {
+            S.cfg = { horas: rc.data.horas, imposto: rc.data.imposto, cartao: rc.data.cartao, lucro: rc.data.lucro };
+            lsSave('cfg', S.cfg);
+        } else {
+            S.cfg = lsLoad('cfg') || S.cfg;
+        }
+
+        setSyncStatus('ok');
+    } catch (e) {
+        console.error('Sync failed:', e);
+        S.insumos = lsLoad('insumos') || insumosPadrao();
+        S.fixos   = lsLoad('fixos')   || fixosPadrao();
+        S.procs   = lsLoad('procs')   || [];
+        S.regs    = lsLoad('regs')    || [];
+        S.cfg     = lsLoad('cfg')     || S.cfg;
+        setSyncStatus('offline');
+    }
+}
+
+// ── AUTH ─────────────────────────────────────────────────────────
+const auth = {
+    async entrar() {
+        const email = document.getElementById('login-email').value.trim();
+        const senha = document.getElementById('login-senha').value;
+        if (!email || !senha) { this._erro('Preencha e-mail e senha.'); return; }
+
+        const btn = document.getElementById('btn-login');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Entrando...';
+
+        const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Entrar';
+
+        if (error) {
+            this._erro('E-mail ou senha incorretos.');
+            return;
+        }
+        S.user = data.user;
+        await this._abrirApp();
+    },
+
+    async criarConta() {
+        const email = document.getElementById('login-email').value.trim();
+        const senha = document.getElementById('login-senha').value;
+        if (!email || !senha) { this._erro('Preencha e-mail e senha.'); return; }
+        if (senha.length < 6) { this._erro('Senha deve ter pelo menos 6 caracteres.'); return; }
+
+        const btn = document.getElementById('btn-criar');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Criando...';
+
+        const { data, error } = await sb.auth.signUp({ email, password: senha });
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-user-plus mr-2"></i>Criar Conta';
+
+        if (error) { this._erro(error.message); return; }
+        if (data.user && !data.session) {
+            this._erro('Confirme o e-mail antes de entrar. Verifique sua caixa de entrada.');
+            return;
+        }
+        S.user = data.user;
+        await this._abrirApp();
+    },
+
+    async sair() {
+        await sb.auth.signOut();
+        S.user = null;
+        document.getElementById('app').classList.add('hidden');
+        document.getElementById('tela-login').classList.remove('hidden');
+    },
+
+    async _abrirApp() {
+        document.getElementById('tela-login').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        document.getElementById('app').classList.add('flex');
+        await syncFromCloud();
+        app.init();
+    },
+
+    _erro(msg) {
+        document.getElementById('login-erro').classList.remove('hidden');
+        document.getElementById('login-erro-msg').textContent = msg;
+    },
+
+    toggleSenha() {
+        const input = document.getElementById('login-senha');
+        const icon = document.getElementById('icone-senha');
+        if (input.type === 'password') { input.type = 'text'; icon.className = 'fas fa-eye-slash text-sm'; }
+        else { input.type = 'password'; icon.className = 'fas fa-eye text-sm'; }
+    },
+
+    toggleModoCriar() {
+        const modo = document.getElementById('modo-criar');
+        const txt = document.getElementById('texto-toggle-modo');
+        const hidden = modo.classList.contains('hidden');
+        modo.classList.toggle('hidden', !hidden);
+        txt.textContent = hidden ? 'Já tenho conta' : 'Primeiro acesso? Criar conta';
+    }
+};
+
+// Checar sessão existente ao carregar
+window.addEventListener('DOMContentLoaded', async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) {
+        S.user = session.user;
+        await auth._abrirApp();
+    }
+});
+
+// ── APP ──────────────────────────────────────────────────────────
+const app = {
+    init() {
+        const hoje = new Date().toISOString();
+        document.getElementById('filtro-mes').value = hoje.slice(0, 7);
+        document.getElementById('filtro-mes-reg').value = hoje.slice(0, 7);
+        document.getElementById('reg-data').value = hoje.slice(0, 10);
+        this._renderConfigCampos();
+        this.goTo('dashboard');
+    },
+
+    goTo(page) {
+        const titulos = { dashboard:'Dashboard & DRE', procedimentos:'Procedimentos & Simulador', estoque:'Controle de Estoque', registros:'Registrar Atendimento', configuracoes:'Configurações' };
+        document.querySelectorAll('.aba-page').forEach(el => el.classList.add('hidden'));
+        document.getElementById('page-' + page).classList.remove('hidden');
+        document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('tab-active'));
+        document.getElementById('nav-' + page).classList.add('tab-active');
+        document.getElementById('header-title').textContent = titulos[page];
+        if (page === 'dashboard')     this.renderDashboard();
+        if (page === 'procedimentos') this.renderProcedimentos();
+        if (page === 'estoque')       this.renderEstoque();
+        if (page === 'registros')     this._renderRegistrosForm();
+        if (page === 'configuracoes') this._renderConfigPage();
+    },
+
+    // ── DASHBOARD ──
+    renderDashboard() {
+        this._atualizarCustoMinBadge();
+        const mes = document.getElementById('filtro-mes').value;
+        const regs = S.regs.filter(r => r.data?.startsWith(mes));
+        const fat = regs.reduce((a,r) => a + Number(r.preco), 0);
+        const custoVar = regs.reduce((a,r) => a + Number(r.custo_insumos||0) + Number(r.custo_tempo||0), 0);
+        const totalFixo = S.fixos.reduce((a,c) => a + Number(c.valor), 0);
+        const lucro = fat - custoVar - totalFixo;
+        const margem = fat > 0 ? (lucro / fat * 100) : 0;
+
+        document.getElementById('kpi-faturamento').textContent = brl(fat);
+        document.getElementById('kpi-atendimentos').textContent = regs.length + (regs.length !== 1 ? ' atendimentos' : ' atendimento');
+        document.getElementById('kpi-custo-variavel').textContent = brl(custoVar);
+        document.getElementById('kpi-custo-fixo').textContent = brl(totalFixo);
+        document.getElementById('kpi-lucro').textContent = brl(lucro);
+        document.getElementById('kpi-lucro').className = 'text-2xl font-bold ' + (lucro >= 0 ? 'text-white' : 'text-rose');
+        document.getElementById('kpi-margem').textContent = 'Margem: ' + margem.toFixed(1) + '%';
+
+        // DRE
+        const dreEl = document.getElementById('dre-content');
+        if (fat === 0 && totalFixo === 0) {
+            dreEl.innerHTML = '<p class="text-sm text-texto/40 text-center py-6">Registre atendimentos para visualizar o DRE.</p>';
+        } else {
+            const custoIns = regs.reduce((a,r) => a + Number(r.custo_insumos||0), 0);
+            const custoTempo = regs.reduce((a,r) => a + Number(r.custo_tempo||0), 0);
+            const lucroB = fat - custoVar;
+            dreEl.innerHTML = `<div class="space-y-1 text-sm max-w-lg mx-auto">
+                ${this._dreRow('(+) Receita Bruta', fat, true, 'font-bold text-verde-escuro')}
+                ${this._dreRow('(−) Custo de Insumos', -custoIns)}
+                ${this._dreRow('(−) Custo de Cabine (Tempo)', -custoTempo)}
+                <div class="border-t border-bege-pedra my-2"></div>
+                ${this._dreRow('(=) Lucro Bruto', lucroB, true)}
+                ${this._dreRow('(−) Despesas Fixas', -totalFixo)}
+                <div class="border-t border-verde-oliva/20 my-2"></div>
+                ${this._dreRow('(=) Resultado Operacional', lucro, true, 'font-bold ' + (lucro>=0?'text-verde-escuro':'text-rose'))}
+            </div>`;
+        }
+
+        // Últimos registros
+        const ultimos = [...S.regs].slice(0, 5);
+        const histEl = document.getElementById('dashboard-registros');
+        histEl.innerHTML = ultimos.length === 0
+            ? '<p class="text-sm text-texto/40 text-center py-8">Nenhum atendimento registrado.</p>'
+            : ultimos.map(r => `<div class="flex items-center justify-between px-6 py-3 hover:bg-fundo-principal/50 transition">
+                <div><p class="font-medium text-sm">${r.proc_nome}</p>
+                <p class="text-xs text-texto/50">${this._fmtData(r.data)} · ${r.pagamento}</p></div>
+                <span class="font-semibold text-verde-escuro">${brl(r.preco)}</span>
+            </div>`).join('');
+
+        this._atualizarBadgeEstoque();
+        this.renderGrafico();
+        this.renderAnalisePrecos();
+    },
+
+    _dreRow(label, valor, bold=false, cls='') {
+        const cor = valor < 0 ? 'text-rose' : (valor > 0 ? 'text-verde-escuro' : 'text-texto/50');
+        const c = cls || (bold ? `font-semibold ${cor}` : cor);
+        return `<div class="flex justify-between py-1 px-2 rounded ${bold?'bg-fundo-principal':''}">
+            <span class="${bold?'font-medium':''} text-texto">${label}</span>
+            <span class="${c}">${brl(Math.abs(valor))}</span>
+        </div>`;
+    },
+
+    _fmtData(d) {
+        if (!d) return '';
+        const [y,m,dia] = d.split('-');
+        return `${dia}/${m}/${y}`;
+    },
+
+    _atualizarCustoMinBadge() {
+        const cm = custoMinuto();
+        document.getElementById('badge-custo-minuto').childNodes[0].textContent = ' Custo/min: R$ ' + cm.toFixed(4).replace('.', ',') + ' ';
+    },
+
+    _atualizarBadgeEstoque() {
+        const al = S.insumos.filter(i => Number(i.estoque_min||0) > 0 && Number(i.estoque||0) <= Number(i.estoque_min||0));
+        const b = document.getElementById('badge-estoque');
+        if (al.length > 0) { b.classList.remove('hidden'); b.textContent = al.length; }
+        else b.classList.add('hidden');
+    },
+
+    // ── PROCEDIMENTOS ──
+    renderProcedimentos() {
+        this._atualizarCustoMinBadge();
+        const el = document.getElementById('lista-procedimentos');
+        if (S.procs.length === 0) {
+            el.innerHTML = '<p class="text-sm text-texto/40 text-center py-10 bg-fundo-suave rounded-xl border border-bege-pedra">Nenhum procedimento cadastrado.</p>';
+            return;
+        }
+        el.innerHTML = S.procs.map(p => {
+            const ci = custoInsumosFicha(p.ficha);
+            const ct = Number(p.tempo||0) * custoMinuto();
+            const cd = ci + ct;
+            const chips = (p.ficha||[]).map(l => {
+                const ins = S.insumos.find(i => i.id === l.insumo_id);
+                return ins ? `<span class="bg-bege-pedra/40 text-xs px-2 py-0.5 rounded-full">${ins.nome} ×${l.qtd}</span>` : '';
+            }).join('');
+            return `<div class="bg-fundo-suave rounded-xl border border-bege-pedra shadow-sm p-5">
+                <div class="flex justify-between items-start gap-4">
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-verde-escuro">${p.nome}</h4>
+                        <p class="text-xs text-texto/50 mt-0.5">${p.tempo} min de cabine</p>
+                        ${chips ? `<div class="flex flex-wrap gap-1 mt-2">${chips}</div>` : ''}
+                    </div>
+                    <div class="flex items-center gap-5 text-right flex-shrink-0">
+                        <div><p class="text-xs text-texto/50">Custo Direto</p><p class="font-medium text-rose text-sm">${brl(cd)}</p></div>
+                        <div><p class="text-xs text-texto/50">Preço Venda</p><p class="font-semibold text-verde-escuro">${brl(p.preco)}</p></div>
+                        <div class="flex gap-1">
+                            <button onclick="app.abrirModalProcedimento('${p.id}')" class="text-verde-oliva hover:text-verde-escuro p-1.5 rounded hover:bg-bege-pedra/40 transition"><i class="fas fa-pen text-xs"></i></button>
+                            <button onclick="app.excluirProcedimento('${p.id}')" class="text-rose/50 hover:text-rose p-1.5 rounded hover:bg-rose/10 transition"><i class="fas fa-trash text-xs"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    },
+
+    abrirModalProcedimento(id) {
+        const p = id ? S.procs.find(x => x.id === id) : null;
+        document.getElementById('modal-proc-titulo').textContent = p ? 'Editar Procedimento' : 'Novo Procedimento';
+        document.getElementById('mp-id').value = p?.id || '';
+        document.getElementById('mp-nome').value = p?.nome || '';
+        document.getElementById('mp-tempo').value = p?.tempo || '';
+        document.getElementById('mp-preco').value = p?.preco || '';
+        this._renderFichaTecnica(p?.ficha || []);
+        this.calcularCustoProc();
+        document.getElementById('modal-procedimento').classList.remove('hidden');
+    },
+
+    _renderFichaTecnica(ficha) {
+        const el = document.getElementById('ficha-tecnica-linhas');
+        if (!ficha?.length) { el.innerHTML = '<p class="text-xs text-texto/40 text-center py-1">Nenhum insumo adicionado.</p>'; return; }
+        el.innerHTML = ficha.map((l,i) => `
+            <div class="flex items-center gap-2">
+                <select class="flex-1 px-2 py-1.5 border border-bege-pedra rounded-lg bg-white text-xs ficha-sel" data-idx="${i}" onchange="app.calcularCustoProc()">
+                    <option value="">Selecionar insumo...</option>
+                    ${S.insumos.map(ins => `<option value="${ins.id}" ${ins.id===l.insumo_id?'selected':''}>${ins.nome} (${ins.unidade})</option>`).join('')}
+                </select>
+                <input type="number" step="0.1" value="${l.qtd}" placeholder="Qtd" class="w-20 px-2 py-1.5 border border-bege-pedra rounded-lg bg-white text-xs ficha-qtd" data-idx="${i}" oninput="app.calcularCustoProc()">
+                <button onclick="app.removerLinhaFicha(${i})" class="text-rose/50 hover:text-rose p-1 transition"><i class="fas fa-times text-xs"></i></button>
+            </div>`).join('');
+    },
+
+    addLinhaFicha() {
+        const f = this._getFichaUI();
+        f.push({ insumo_id: '', qtd: 1 });
+        this._renderFichaTecnica(f);
+    },
+
+    removerLinhaFicha(idx) {
+        const f = this._getFichaUI();
+        f.splice(idx, 1);
+        this._renderFichaTecnica(f);
+        this.calcularCustoProc();
+    },
+
+    _getFichaUI() {
+        const sels = document.querySelectorAll('.ficha-sel');
+        const qtds = document.querySelectorAll('.ficha-qtd');
+        return Array.from(sels).map((s,i) => ({ insumo_id: s.value, qtd: parseFloat(qtds[i]?.value||1)||1 })).filter(l => l.insumo_id);
+    },
+
+    calcularCustoProc() {
+        const ficha = this._getFichaUI();
+        const ci = custoInsumosFicha(ficha);
+        const t = parseFloat(document.getElementById('mp-tempo').value)||0;
+        const ct = t * custoMinuto();
+        const cd = ci + ct;
+        const preco = parseFloat(document.getElementById('mp-preco').value)||0;
+        document.getElementById('mp-custo-insumos').textContent = brl(ci);
+        document.getElementById('mp-sim-custo').textContent = brl(cd);
+        document.getElementById('mp-sim-preco').textContent = brl(preco);
+        document.getElementById('mp-sim-lucro').textContent = brl(preco - cd);
+    },
+
+    calcularPrecoSugerido() {
+        const ficha = this._getFichaUI();
+        const ci = custoInsumosFicha(ficha);
+        const t = parseFloat(document.getElementById('mp-tempo').value)||0;
+        const cd = ci + t * custoMinuto();
+        const soma = (S.cfg.imposto + S.cfg.cartao + S.cfg.lucro) / 100;
+        if (soma >= 1) { alert('Taxas excedem 100%'); return; }
+        const preco = cd / (1 - soma);
+        document.getElementById('mp-preco').value = preco.toFixed(2);
+        this.calcularCustoProc();
+    },
+
+    async salvarProcedimento() {
+        const nome = document.getElementById('mp-nome').value.trim();
+        const tempo = parseFloat(document.getElementById('mp-tempo').value);
+        if (!nome || !tempo) { alert('Preencha nome e tempo.'); return; }
+        const id = document.getElementById('mp-id').value || uid();
+        const obj = { id, nome, tempo, preco: parseFloat(document.getElementById('mp-preco').value)||0, ficha: this._getFichaUI() };
+        const idx = S.procs.findIndex(p => p.id === id);
+        if (idx >= 0) S.procs[idx] = obj; else S.procs.push(obj);
+        lsSave('procs', S.procs);
+        this.fecharModal('modal-procedimento');
+        this.renderProcedimentos();
+        await cloudUpsert('procedimentos', obj);
+    },
+
+    async excluirProcedimento(id) {
+        if (!confirm('Excluir este procedimento?')) return;
+        S.procs = S.procs.filter(p => p.id !== id);
+        lsSave('procs', S.procs);
+        this.renderProcedimentos();
+        await cloudDelete('procedimentos', id);
+    },
+
+    // ── ESTOQUE ──
+    renderEstoque() {
+        const tbody = document.getElementById('tabela-estoque');
+        if (!S.insumos.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-sm text-texto/40 py-8">Nenhum insumo cadastrado.</td></tr>'; return; }
+        tbody.innerHTML = S.insumos.map(i => {
+            const est = Number(i.estoque||0);
+            const min = Number(i.estoque_min||0);
+            const al = min > 0 && est <= min;
+            return `<tr class="border-b border-bege-pedra/50 hover:bg-fundo-principal/50 transition text-sm ${al?'bg-rose/5':''}">
+                <td class="px-4 py-3 font-medium">${i.nome}</td>
+                <td class="px-4 py-3 text-xs text-verde-oliva">${i.categoria||'—'}</td>
+                <td class="px-4 py-3 text-xs">${i.unidade||'—'}</td>
+                <td class="px-4 py-3 text-right font-medium text-verde-escuro">${brl(i.custo)}</td>
+                <td class="px-4 py-3 text-center">
+                    <input type="number" step="0.1" value="${est}" class="w-20 text-center px-2 py-1 border border-bege-pedra rounded-lg bg-white text-sm"
+                        onchange="app.atualizarEstoqueInline('${i.id}', this.value)">
+                </td>
+                <td class="px-4 py-3 text-center">
+                    ${al ? '<span class="bg-rose/10 text-rose text-xs px-2 py-0.5 rounded-full border border-rose/20 badge-alert">Baixo</span>'
+                         : '<span class="bg-verde-claro/20 text-verde-escuro text-xs px-2 py-0.5 rounded-full border border-verde-claro/30">OK</span>'}
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <button onclick="app.abrirModalInsumo('${i.id}')" class="text-verde-oliva hover:text-verde-escuro p-1 transition"><i class="fas fa-pen text-xs"></i></button>
+                    <button onclick="app.excluirInsumo('${i.id}')" class="text-rose/40 hover:text-rose p-1 transition ml-1"><i class="fas fa-trash text-xs"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+        this._atualizarBadgeEstoque();
+    },
+
+    async atualizarEstoqueInline(id, val) {
+        const ins = S.insumos.find(i => i.id === id);
+        if (!ins) return;
+        ins.estoque = parseFloat(val)||0;
+        lsSave('insumos', S.insumos);
+        this._atualizarBadgeEstoque();
+        await cloudUpsert('insumos', ins);
+    },
+
+    abrirModalInsumo(id) {
+        const i = id ? S.insumos.find(x => x.id === id) : null;
+        document.getElementById('modal-ins-titulo').textContent = i ? 'Editar Insumo' : 'Novo Insumo';
+        document.getElementById('mi-id').value = i?.id || '';
+        document.getElementById('mi-nome').value = i?.nome || '';
+        document.getElementById('mi-categoria').value = i?.categoria || '';
+        document.getElementById('mi-unidade').value = i?.unidade || '';
+        document.getElementById('mi-custo').value = i?.custo || '';
+        document.getElementById('mi-estoque').value = i?.estoque || '';
+        document.getElementById('mi-estoque-min').value = i?.estoque_min || '';
+        document.getElementById('modal-insumo').classList.remove('hidden');
+    },
+
+    async salvarInsumo() {
+        const nome = document.getElementById('mi-nome').value.trim();
+        const custo = parseFloat(document.getElementById('mi-custo').value);
+        if (!nome || isNaN(custo)) { alert('Nome e custo são obrigatórios.'); return; }
+        const id = document.getElementById('mi-id').value || uid();
+        const obj = { id, nome, custo, categoria: document.getElementById('mi-categoria').value.trim(), unidade: document.getElementById('mi-unidade').value.trim(), estoque: parseFloat(document.getElementById('mi-estoque').value)||0, estoque_min: parseFloat(document.getElementById('mi-estoque-min').value)||0 };
+        const idx = S.insumos.findIndex(i => i.id === id);
+        if (idx >= 0) S.insumos[idx] = obj; else S.insumos.push(obj);
+        lsSave('insumos', S.insumos);
+        this.fecharModal('modal-insumo');
+        this.renderEstoque();
+        await cloudUpsert('insumos', obj);
+    },
+
+    async excluirInsumo(id) {
+        if (!confirm('Excluir este insumo?')) return;
+        S.insumos = S.insumos.filter(i => i.id !== id);
+        lsSave('insumos', S.insumos);
+        this.renderEstoque();
+        await cloudDelete('insumos', id);
+    },
+
+    // ── REGISTROS ──
+    _renderRegistrosForm() {
+        const sel = document.getElementById('reg-procedimento');
+        sel.innerHTML = '<option value="">Selecione...</option>' + S.procs.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+        this.renderHistorico();
+    },
+
+    preencherRegistro() {
+        const id = document.getElementById('reg-procedimento').value;
+        const p = S.procs.find(x => x.id === id);
+        if (!p) { document.getElementById('reg-resumo').classList.add('hidden'); return; }
+        document.getElementById('reg-preco').value = p.preco || '';
+        const ci = custoInsumosFicha(p.ficha);
+        const ct = Number(p.tempo||0) * custoMinuto();
+        document.getElementById('reg-custo-insumos').textContent = brl(ci);
+        document.getElementById('reg-custo-tempo').textContent = brl(ct);
+        document.getElementById('reg-custo-total').textContent = brl(ci + ct);
+        const semEstoque = (p.ficha||[]).some(l => {
+            const ins = S.insumos.find(i => i.id === l.insumo_id);
+            return ins && (Number(ins.estoque||0) - Number(l.qtd)) < 0;
+        });
+        document.getElementById('reg-alerta-estoque').classList.toggle('hidden', !semEstoque);
+        document.getElementById('reg-resumo').classList.remove('hidden');
+    },
+
+    async registrarAtendimento() {
+        const data = document.getElementById('reg-data').value;
+        const procId = document.getElementById('reg-procedimento').value;
+        const preco = parseFloat(document.getElementById('reg-preco').value);
+        if (!data || !procId || isNaN(preco)) { alert('Preencha data, procedimento e preço.'); return; }
+        const p = S.procs.find(x => x.id === procId);
+        if (!p) return;
+        const ci = custoInsumosFicha(p.ficha);
+        const ct = Number(p.tempo||0) * custoMinuto();
+
+        // Baixa estoque
+        const insumosAlterados = [];
+        (p.ficha||[]).forEach(l => {
+            const ins = S.insumos.find(i => i.id === l.insumo_id);
+            if (ins) { ins.estoque = Math.max(0, Number(ins.estoque||0) - Number(l.qtd)); insumosAlterados.push(ins); }
+        });
+        lsSave('insumos', S.insumos);
+
+        const reg = { id: uid(), data, proc_id: procId, proc_nome: p.nome, preco, pagamento: document.getElementById('reg-pagamento').value, custo_insumos: ci, custo_tempo: ct };
+        S.regs.unshift(reg);
+        lsSave('regs', S.regs);
+
+        // Reset form
+        document.getElementById('reg-procedimento').value = '';
+        document.getElementById('reg-preco').value = '';
+        document.getElementById('reg-resumo').classList.add('hidden');
+        this.renderHistorico();
+        this._showToast('Atendimento registrado! Estoque atualizado.');
+
+        // Sync cloud async
+        await cloudUpsert('registros', reg);
+        await Promise.all(insumosAlterados.map(i => cloudUpsert('insumos', i)));
+    },
+
+    renderHistorico() {
+        const mes = document.getElementById('filtro-mes-reg').value;
+        const regs = S.regs.filter(r => r.data?.startsWith(mes));
+        const el = document.getElementById('historico-registros');
+        if (!regs.length) { el.innerHTML = '<p class="text-sm text-texto/40 text-center py-8">Nenhum atendimento neste período.</p>'; return; }
+        el.innerHTML = `<table class="w-full text-left">
+            <thead><tr class="bg-bege-pedra/30 text-verde-escuro text-xs uppercase tracking-wide">
+                <th class="px-4 py-3">Data</th><th class="px-4 py-3">Procedimento</th>
+                <th class="px-4 py-3">Pagamento</th><th class="px-4 py-3 text-right">Custo</th>
+                <th class="px-4 py-3 text-right">Faturado</th><th class="px-4 py-3"></th>
+            </tr></thead>
+            <tbody>${regs.map(r => `<tr class="border-b border-bege-pedra/50 hover:bg-fundo-principal/50 transition text-sm">
+                <td class="px-4 py-3 text-xs text-texto/60">${this._fmtData(r.data)}</td>
+                <td class="px-4 py-3 font-medium">${r.proc_nome}</td>
+                <td class="px-4 py-3 text-xs">${r.pagamento}</td>
+                <td class="px-4 py-3 text-right text-rose text-xs">${brl(Number(r.custo_insumos||0)+Number(r.custo_tempo||0))}</td>
+                <td class="px-4 py-3 text-right font-semibold text-verde-escuro">${brl(r.preco)}</td>
+                <td class="px-4 py-3 text-right"><button onclick="app.excluirRegistro('${r.id}')" class="text-rose/40 hover:text-rose p-1 transition"><i class="fas fa-trash text-xs"></i></button></td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+    },
+
+    async excluirRegistro(id) {
+        if (!confirm('Excluir este registro?\nObs: o estoque não será restaurado.')) return;
+        S.regs = S.regs.filter(r => r.id !== id);
+        lsSave('regs', S.regs);
+        this.renderHistorico();
+        await cloudDelete('registros', id);
+    },
+
+    // ── CONFIGURAÇÕES ──
+    _renderConfigPage() {
+        this._renderConfigCampos();
+        this._renderCustosFixos();
+    },
+
+    _renderConfigCampos() {
+        document.getElementById('cfg-horas').value = S.cfg.horas;
+        document.getElementById('cfg-imposto').value = S.cfg.imposto;
+        document.getElementById('cfg-cartao').value = S.cfg.cartao;
+        document.getElementById('cfg-lucro').value = S.cfg.lucro;
+    },
+
+    _renderCustosFixos() {
+        const el = document.getElementById('lista-custos-fixos');
+        el.innerHTML = !S.fixos.length
+            ? '<p class="text-sm text-texto/40 text-center py-3">Nenhuma despesa cadastrada.</p>'
+            : S.fixos.map(c => `<div class="flex items-center gap-3 bg-fundo-principal p-3 rounded-lg border border-bege-pedra">
+                <span class="flex-1 font-medium text-sm">${c.descricao}</span>
+                <span class="font-bold text-verde-escuro">${brl(c.valor)}</span>
+                <button onclick="app.editarCustoFixo('${c.id}')" class="text-verde-oliva hover:text-verde-escuro p-1 transition"><i class="fas fa-pen text-xs"></i></button>
+                <button onclick="app.excluirCustoFixo('${c.id}')" class="text-rose/50 hover:text-rose p-1 transition"><i class="fas fa-trash text-xs"></i></button>
+            </div>`).join('');
+        document.getElementById('total-fixo').textContent = brl(S.fixos.reduce((a,c) => a + Number(c.valor), 0));
+        const cm = custoMinuto();
+        document.getElementById('cfg-custo-min').textContent = 'R$ ' + cm.toFixed(4).replace('.', ',');
+        this._atualizarCustoMinBadge();
+    },
+
+    addCustoFixo() {
+        document.getElementById('modal-cf-titulo').textContent = 'Nova Despesa Fixa';
+        document.getElementById('mcf-id').value = '';
+        document.getElementById('mcf-desc').value = '';
+        document.getElementById('mcf-valor').value = '';
+        document.getElementById('modal-custo-fixo').classList.remove('hidden');
+    },
+
+    editarCustoFixo(id) {
+        const c = S.fixos.find(x => x.id === id);
+        if (!c) return;
+        document.getElementById('modal-cf-titulo').textContent = 'Editar Despesa';
+        document.getElementById('mcf-id').value = c.id;
+        document.getElementById('mcf-desc').value = c.descricao;
+        document.getElementById('mcf-valor').value = c.valor;
+        document.getElementById('modal-custo-fixo').classList.remove('hidden');
+    },
+
+    async salvarCustoFixo() {
+        const desc = document.getElementById('mcf-desc').value.trim();
+        const val = parseFloat(document.getElementById('mcf-valor').value);
+        if (!desc || isNaN(val)) { alert('Preencha todos os campos.'); return; }
+        const id = document.getElementById('mcf-id').value || uid();
+        const obj = { id, descricao: desc, valor: val };
+        const idx = S.fixos.findIndex(c => c.id === id);
+        if (idx >= 0) S.fixos[idx] = obj; else S.fixos.push(obj);
+        lsSave('fixos', S.fixos);
+        this.fecharModal('modal-custo-fixo');
+        this._renderCustosFixos();
+        await cloudUpsert('custos_fixos', obj);
+    },
+
+    async excluirCustoFixo(id) {
+        if (!confirm('Excluir esta despesa?')) return;
+        S.fixos = S.fixos.filter(c => c.id !== id);
+        lsSave('fixos', S.fixos);
+        this._renderCustosFixos();
+        await cloudDelete('custos_fixos', id);
+    },
+
+    async salvarConfig() {
+        S.cfg.horas = parseFloat(document.getElementById('cfg-horas').value)||139.41;
+        S.cfg.imposto = parseFloat(document.getElementById('cfg-imposto').value)||6;
+        S.cfg.cartao = parseFloat(document.getElementById('cfg-cartao').value)||3.5;
+        S.cfg.lucro = parseFloat(document.getElementById('cfg-lucro').value)||30;
+        lsSave('cfg', S.cfg);
+        this._renderCustosFixos();
+        await cloudUpsertConfig();
+    },
+
+    // ── MODAIS ──
+    fecharModal(id) { document.getElementById(id).classList.add('hidden'); },
+
+    _showToast(msg) {
+        const t = document.createElement('div');
+        t.textContent = msg;
+        t.className = 'fixed bottom-6 right-6 bg-verde-escuro text-white px-5 py-3 rounded-xl shadow-lg text-sm z-50';
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(()=>t.remove(),300); }, 2500);
+    },
+
+    // ── GRÁFICO EVOLUÇÃO ──
+    _graficoInstance: null,
+    renderGrafico() {
+        const meses = [];
+        const hoje = new Date();
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+            meses.push(d.toISOString().slice(0, 7));
+        }
+        const totalFixo = S.fixos.reduce((a,c) => a + Number(c.valor), 0);
+        const labels = meses.map(m => { const [y,mo] = m.split('-'); return ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)-1] + '/' + y.slice(2); });
+        const fat   = meses.map(m => S.regs.filter(r=>r.data?.startsWith(m)).reduce((a,r)=>a+Number(r.preco),0));
+        const custoV= meses.map(m => S.regs.filter(r=>r.data?.startsWith(m)).reduce((a,r)=>a+Number(r.custo_insumos||0)+Number(r.custo_tempo||0),0));
+        const lucro = meses.map((m,i) => fat[i] - custoV[i] - totalFixo);
+
+        const ctx = document.getElementById('grafico-evolucao');
+        if (!ctx) return;
+        if (this._graficoInstance) { this._graficoInstance.destroy(); }
+        this._graficoInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    { label: 'Faturamento', data: fat, backgroundColor: '#899173cc', borderRadius: 4 },
+                    { label: 'Custo Variável', data: custoV, backgroundColor: '#B2676877', borderRadius: 4 },
+                    { label: 'Lucro Operacional', data: lucro, backgroundColor: '#5F674C99', borderRadius: 4, type: 'line', fill: false, borderColor: '#5F674C', tension: 0.3, pointBackgroundColor: '#5F674C' }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 }, color: '#4B423A', boxWidth: 12 } }, tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': R$ ' + Number(ctx.parsed.y).toFixed(2).replace('.',',') } } },
+                scales: { y: { ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR'), font: { size: 10 } }, grid: { color: '#E2D5C344' } }, x: { grid: { display: false } } }
+            }
+        });
+    },
+
+    // ── ANÁLISE DE PREÇOS ──
+    renderAnalisePrecos() {
+        const el = document.getElementById('analise-precos');
+        if (!el) return;
+        const analise = S.procs.map(p => {
+            const regsProc = S.regs.filter(r => r.proc_id === p.id);
+            if (!regsProc.length) return null;
+            const mediaCobrada = regsProc.reduce((a,r)=>a+Number(r.preco),0) / regsProc.length;
+            const diff = mediaCobrada - Number(p.preco||0);
+            return { nome: p.nome, sugerido: Number(p.preco||0), mediaCobrada, diff, qtd: regsProc.length };
+        }).filter(Boolean);
+
+        if (!analise.length) { el.innerHTML = '<p class="text-sm text-texto/40 text-center py-4">Registre atendimentos para ver a análise.</p>'; return; }
+
+        el.innerHTML = `<table class="w-full text-sm">
+            <thead><tr class="text-xs uppercase text-verde-oliva border-b border-bege-pedra">
+                <th class="pb-2 text-left">Procedimento</th>
+                <th class="pb-2 text-right">Sugerido</th>
+                <th class="pb-2 text-right">Média Cobrada</th>
+                <th class="pb-2 text-center">Atend.</th>
+                <th class="pb-2 text-right">Diferença</th>
+            </tr></thead>
+            <tbody>${analise.map(a => `<tr class="border-b border-bege-pedra/40 hover:bg-fundo-principal/50">
+                <td class="py-2 font-medium">${a.nome}</td>
+                <td class="py-2 text-right text-texto/60">${brl(a.sugerido)}</td>
+                <td class="py-2 text-right font-semibold text-verde-escuro">${brl(a.mediaCobrada)}</td>
+                <td class="py-2 text-center text-xs text-texto/50">${a.qtd}×</td>
+                <td class="py-2 text-right font-semibold ${a.diff>=0?'text-verde-escuro':'text-rose'}">${a.diff>=0?'+':''}${brl(a.diff)}</td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+    },
+
+    // ── PDF / IMPRESSÃO ──
+    imprimirDRE() {
+        const mes = document.getElementById('filtro-mes').value;
+        const [y, m] = mes.split('-');
+        const nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(m)-1];
+        document.title = `DRE ${nomeMes} ${y} — Dra Mariana Leite`;
+        window.print();
+        setTimeout(() => document.title = 'Dra Mariana Leite | Gestão Financeira', 1000);
+    },
+
+    // ── WHATSAPP ESTOQUE BAIXO ──
+    alertarWhatsApp() {
+        const baixos = S.insumos.filter(i => Number(i.estoque_min||0) > 0 && Number(i.estoque||0) <= Number(i.estoque_min||0));
+        if (!baixos.length) { this._showToast('Nenhum insumo com estoque abaixo do mínimo!'); return; }
+        const linhas = baixos.map(i => `• ${i.nome}: ${Number(i.estoque||0)} ${i.unidade||'un'} (mín: ${i.estoque_min})`).join('\n');
+        const msg = encodeURIComponent(`🔴 *ALERTA DE ESTOQUE BAIXO — Clínica*\n\nOs seguintes insumos precisam de reposição:\n\n${linhas}\n\nFavor providenciar a compra.`);
+        window.open(`https://wa.me/?text=${msg}`, '_blank');
+    }
+};
+
+// ── DADOS PADRÃO ─────────────────────────────────────────────────
+function insumosPadrao() {
+    return [
+        { id: uid(), categoria:'Descartáveis', nome:'Luva Descartável', unidade:'Par', custo:0.46, estoque:100, estoque_min:20 },
+        { id: uid(), categoria:'Descartáveis', nome:'Lençol de Maca', unidade:'Unidade', custo:3.50, estoque:50, estoque_min:10 },
+        { id: uid(), categoria:'Cosméticos', nome:'Água Micelar', unidade:'Porção', custo:0.14, estoque:200, estoque_min:30 },
+        { id: uid(), categoria:'Químicos', nome:'Toxina Botulínica 100UI', unidade:'Ampola', custo:455.00, estoque:5, estoque_min:2 },
+        { id: uid(), categoria:'Químicos', nome:'Soro Fisiológico', unidade:'Ampola', custo:0.11, estoque:50, estoque_min:10 },
+        { id: uid(), categoria:'Descartáveis', nome:'Seringa 1ml', unidade:'Unidade', custo:1.20, estoque:80, estoque_min:15 },
+        { id: uid(), categoria:'Descartáveis', nome:'Agulha 30G', unidade:'Unidade', custo:0.35, estoque:80, estoque_min:15 }
+    ];
+}
+function fixosPadrao() {
+    return [
+        { id: uid(), descricao:'Pró-labore + Folha', valor:5000 },
+        { id: uid(), descricao:'Aluguel e Condomínio', valor:2500 },
+        { id: uid(), descricao:'Contabilidade e Sistemas', valor:550 },
+        { id: uid(), descricao:'Água, Luz e Internet', valor:450 }
+    ];
+}
+</script>
+</body>
+</html>
