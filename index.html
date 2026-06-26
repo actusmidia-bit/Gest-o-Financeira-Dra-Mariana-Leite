@@ -139,18 +139,34 @@ async function cloudUpsert(table,obj){ try{ const {error}=await sb.from(table).u
 async function cloudDelete(table,id){ try{ await sb.from(table).delete().eq('id',id).eq('user_id',S.user.id); }catch(e){} }
 
 // ── Auth ──────────────────────────────────────
-const auth = {
+window.auth = {
   async login() {
-    const email=document.getElementById('loginEmail').value.trim();
-    const pass=document.getElementById('loginPass').value;
+    const emailEl=document.getElementById('loginEmail');
+    const passEl=document.getElementById('loginPass');
     const err=document.getElementById('loginErr');
-    err.classList.add('hidden');
-    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
-    if(error){ err.textContent='E-mail ou senha incorretos.'; err.classList.remove('hidden'); return; }
+    const btn=document.querySelector('#loginPage .btn-primary');
+    const email=(emailEl?.value||'').trim();
+    const pass=passEl?.value||'';
+    if(err) err.classList.add('hidden');
+    if(!email||!pass){
+      if(err){ err.textContent='Preencha e-mail e senha.'; err.classList.remove('hidden'); }
+      return;
+    }
+    if(btn){ btn.textContent='Entrando…'; btn.disabled=true; }
+    let result;
+    try{ result=await sb.auth.signInWithPassword({email,password:pass}); }
+    catch(e){ result={error:e}; }
+    if(btn){ btn.textContent='Entrar'; btn.disabled=false; }
+    const {data,error}=result||{};
+    if(error||!data?.user){
+      const msg=error?.message||'Erro ao entrar. Tente novamente.';
+      if(err){ err.textContent=msg.includes('credentials')||msg.includes('password')?'E-mail ou senha incorretos.':msg; err.classList.remove('hidden'); }
+      return;
+    }
     S.user=data.user;
-    loadLocalStorage(); // carrega localStorage imediatamente
-    showApp();          // mostra o app sem esperar cloud
-    loadCloud();        // sincroniza cloud em background
+    loadLocalStorage();
+    showApp();
+    loadCloud();
   },
   async logout(){
     await sb.auth.signOut(); S.user=null;
