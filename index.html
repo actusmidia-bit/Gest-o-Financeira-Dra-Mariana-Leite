@@ -134,6 +134,10 @@ function tip(t,l='ℹ'){ return `<span class="tooltip text-rose-400 text-xs ml-1
 function escHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function setSyncStatus(msg,color='text-gray-400'){ const el=document.getElementById('syncStatus'); if(el){el.textContent=msg;el.className='text-xs '+color;} }
 
+// custo por unidade de uso (ex: frasco 100UI → custo/UI = custo_frasco/100)
+function custoUso(ins){ return (+ins.custo||0)/(+ins.qtd_por_embalagem||1); }
+function labelUso(ins){ return ins.unidade_uso||ins.unidade||'un'; }
+
 // ── LocalStorage ──────────────────────────────
 function lsKey(t){ return `gf_${S.user.id.slice(0,8)}_${t}`; }
 function lsSave(t,d){ try{ localStorage.setItem(lsKey(t),JSON.stringify(d)); }catch(e){} }
@@ -511,8 +515,8 @@ function renderListaProcs(){
   const el=document.getElementById('listaProcs'); if(!el) return;
   if(!S.procs.length){ el.innerHTML='<div class="text-center text-gray-400 py-8">Nenhum protocolo cadastrado</div>'; return; }
   const procsOrdenados=[...S.procs].sort((a,b)=>{
-    const calcA=calcPreco(a.ficha?.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0)||0,+a.tempo||0);
-    const calcB=calcPreco(b.ficha?.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0)||0,+b.tempo||0);
+    const calcA=calcPreco(a.ficha?.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?custoUso(ins)*(+f.qtd||0):0); },0)||0,+a.tempo||0);
+    const calcB=calcPreco(b.ficha?.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?custoUso(ins)*(+f.qtd||0):0); },0)||0,+b.tempo||0);
     return ((+b.preco||0)-calcB.custoTotal)-((+a.preco||0)-calcA.custoTotal);
   });
   // group by categoria
@@ -523,7 +527,7 @@ function renderListaProcs(){
       <div class="text-xs font-bold text-rose-600 uppercase tracking-wide mb-2">${escHtml(cat)}</div>
       <div class="space-y-3">${procs.map((p,idx)=>{
         const ficha=Array.isArray(p.ficha)?p.ficha:[];
-        const custoIns=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0);
+        const custoIns=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?custoUso(ins)*(+f.qtd||0):0); },0);
         const calc=calcPreco(custoIns,+p.tempo||0);
         const preco=+p.preco||0; const diff=preco-calc.preco;
         return `<div class="card">
@@ -587,21 +591,26 @@ function abrirModalProc(id=null){
 function fecharModalProc(){ document.getElementById('modalProc').classList.add('hidden'); }
 function renderFichaLista(){
   const el=document.getElementById('fichaLista'); if(!el) return;
-  el.innerHTML=fichaTemp.map((f,i)=>`
-    <div class="flex gap-2 items-center">
+  el.innerHTML=fichaTemp.map((f,i)=>{
+    const ins=S.insumos.find(x=>x.id===f.insumo_id);
+    const cu=ins?custoUso(ins):0;
+    const lu=ins?labelUso(ins):'un';
+    return `<div class="flex gap-2 items-center">
       <select class="inp inp-sm flex-1" onchange="fichaTemp[${i}].insumo_id=this.value;atualizarSim()">
         <option value="">Selecione insumo</option>
-        ${S.insumos.map(ins=>`<option value="${ins.id}"${ins.id===f.insumo_id?' selected':''}>${escHtml(ins.nome)} (${fmtBRL(ins.custo)}/${ins.unidade||'un'})</option>`).join('')}
+        ${S.insumos.map(ins2=>`<option value="${ins2.id}"${ins2.id===f.insumo_id?' selected':''}>${escHtml(ins2.nome)} (${fmtBRL(custoUso(ins2))}/${labelUso(ins2)})</option>`).join('')}
       </select>
-      <input type="number" step="0.01" value="${f.qtd||''}" class="inp inp-sm w-20" placeholder="Qtd" oninput="fichaTemp[${i}].qtd=+this.value;atualizarSim()">
+      <input type="number" step="0.01" value="${f.qtd||''}" class="inp inp-sm w-24" placeholder="${lu}" title="Qtd em ${lu}" oninput="fichaTemp[${i}].qtd=+this.value;atualizarSim()">
+      <span class="text-xs text-gray-400 w-12">${ins&&f.qtd?fmtBRL(cu*(+f.qtd)):''}</span>
       <button onclick="fichaTemp.splice(${i},1);renderFichaLista();atualizarSim()" class="btn btn-sm btn-danger">✕</button>
-    </div>`).join('')||'<div class="text-xs text-gray-400">Nenhum insumo adicionado</div>';
+    </div>`;
+  }).join('')||'<div class="text-xs text-gray-400">Nenhum insumo adicionado</div>';
 }
 function adicionarFichaItem(){ fichaTemp.push({insumo_id:'',qtd:0}); renderFichaLista(); }
 function atualizarSim(){
   const el=document.getElementById('simPreco'); if(!el) return;
   const tempo=+(document.getElementById('fp_tempo')||{value:0}).value||0;
-  const custoIns=fichaTemp.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0);
+  const custoIns=fichaTemp.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?custoUso(ins)*(+f.qtd||0):0); },0);
   const c=calcPreco(custoIns,tempo);
   el.innerHTML=`<div class="font-semibold mb-2 text-gray-700">💡 Simulador de Preço</div>
     <div class="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -648,7 +657,7 @@ function preencherAtendProc(){
   const p=S.procs.find(x=>x.id===pid); if(!p) return;
   document.getElementById('fa_preco').value=p.preco||'';
   const ficha=Array.isArray(p.ficha)?p.ficha:[];
-  const custoIns=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0);
+  const custoIns=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?custoUso(ins)*(+f.qtd||0):0); },0);
   const cm=calcCustoMinuto(); const custoTempo=cm*(+p.tempo||0);
   const el=document.getElementById('resumoAtend'); el.classList.remove('hidden');
   el.innerHTML=`Custo insumos: ${fmtBRL(custoIns)} | Custo tempo: ${fmtBRL(custoTempo)} | Lucro estimado: ${fmtBRL((+p.preco||0)-custoIns-custoTempo)}`;
@@ -692,7 +701,7 @@ async function salvarAtend(){
   if(!data||!procId) return showToast('Informe data e procedimento','error');
   const proc=S.procs.find(p=>p.id===procId);
   const ficha=proc&&Array.isArray(proc.ficha)?proc.ficha:[];
-  const custoInsumos=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?(+ins.custo||0)*(+f.qtd||0):0); },0);
+  const custoInsumos=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?custoUso(ins)*(+f.qtd||0):0); },0);
   const cm=calcCustoMinuto(); const custoTempo=cm*(+(proc&&proc.tempo)||0);
   const parcelas=parseInt((pagamento.match(/(\d+)x/)||[0,1])[1])||1;
   const editId=document.getElementById('modalAtend').dataset.editId||'';
@@ -703,9 +712,18 @@ async function salvarAtend(){
     preco,pagamento,parcelas,custo_insumos:custoInsumos,custo_tempo:custoTempo};
   // validar estoque
   const alertasEstoque=[];
-  for(const f of ficha){ const ins=S.insumos.find(i=>i.id===f.insumo_id); if(ins&&(+ins.estoque||0)<(+f.qtd||0)) alertasEstoque.push(`${ins.nome}: tem ${ins.estoque} ${ins.unidade||'un'}, precisa ${f.qtd}`); }
+  for(const f of ficha){
+    const ins=S.insumos.find(i=>i.id===f.insumo_id);
+    if(!ins) continue;
+    const fator=+ins.qtd_por_embalagem||1;
+    const embNecessaria=(+f.qtd||0)/fator;
+    if((+ins.estoque||0)<embNecessaria) alertasEstoque.push(`${ins.nome}: tem ${ins.estoque} ${ins.unidade||'un'}, precisa ${embNecessaria.toFixed(2)}`);
+  }
   if(alertasEstoque.length>0&&!confirm(`⚠️ Estoque insuficiente:\n${alertasEstoque.join('\n')}\n\nRegistrar mesmo assim?`)) return;
-  for(const f of ficha){ const ins=S.insumos.find(i=>i.id===f.insumo_id); if(ins){ ins.estoque=Math.max(0,(+ins.estoque||0)-(+f.qtd||0)); S.insumos=S.insumos.map(i=>i.id===ins.id?ins:i); await cloudUpsert('insumos',ins); } }
+  for(const f of ficha){
+    const ins=S.insumos.find(i=>i.id===f.insumo_id);
+    if(ins){ const fator=+ins.qtd_por_embalagem||1; ins.estoque=Math.max(0,(+ins.estoque||0)-(+f.qtd||0)/fator); S.insumos=S.insumos.map(i=>i.id===ins.id?ins:i); await cloudUpsert('insumos',ins); }
+  }
   lsSave('insumos',S.insumos);
   S.regs.push(obj); lsSave('regs',S.regs); await cloudUpsert('registros',obj);
   const valorParcela=preco/parcelas;
@@ -1109,7 +1127,7 @@ function renderConfigurar(){
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm"><thead><tr class="table-header">
-          <th class="p-2 text-left">Insumo</th><th class="p-2">Categoria</th><th class="p-2">Custo/Un</th><th class="p-2">Estoque</th><th class="p-2">Mín</th><th class="p-2">Status</th><th class="p-2 no-print"></th>
+          <th class="p-2 text-left">Insumo</th><th class="p-2">Categoria</th><th class="p-2">Custo/uso</th><th class="p-2">Estoque</th><th class="p-2">Mín</th><th class="p-2">Status</th><th class="p-2 no-print"></th>
         </tr></thead><tbody id="tbodyInsumos"></tbody></table>
       </div>
       <div class="mt-4">
@@ -1139,19 +1157,37 @@ function renderConfigurar(){
 
   <!-- Modal Insumo -->
   <div id="modalInsumo" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5">
       <h3 class="font-bold text-lg mb-4" id="modalInsumoTitle">Insumo</h3>
       <div class="space-y-3">
-        <input id="fi_nome" class="inp" placeholder="Nome do insumo">
         <div class="grid grid-cols-2 gap-3">
-          <input id="fi_cat" class="inp" placeholder="Categoria">
-          <input id="fi_unidade" class="inp" placeholder="Unidade (ml, un, g)">
+          <div class="col-span-2"><label class="text-xs text-gray-500">Nome do insumo</label><input id="fi_nome" class="inp mt-1" placeholder="Ex: Botox, Preenchedor, Luva"></div>
+          <div><label class="text-xs text-gray-500">Categoria</label><input id="fi_cat" class="inp mt-1" placeholder="Ex: Toxina, Filler"></div>
+          <div><label class="text-xs text-gray-500">Tipo de compra</label>
+            <select id="fi_tipo" class="inp mt-1" onchange="toggleInsumoTipo()">
+              <option value="simples">Simples (un, par, ml…)</option>
+              <option value="embalagem">Embalagem com conversão</option>
+            </select>
+          </div>
+        </div>
+        <!-- Custo sempre visível -->
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="text-xs text-gray-500" id="fi_label_custo">Custo por unidade (R$)</label><input id="fi_custo" type="number" step="0.0001" class="inp mt-1" placeholder="0,00" oninput="previewCustoUso()"></div>
+          <div><label class="text-xs text-gray-500" id="fi_label_unidade">Unidade</label><input id="fi_unidade" class="inp mt-1" placeholder="un, par, ml, g"></div>
+        </div>
+        <!-- Bloco embalagem (oculto por padrão) -->
+        <div id="fi_bloco_embalagem" class="hidden space-y-2 bg-rose-50 rounded-xl p-3">
+          <p class="text-xs text-rose-700 font-semibold">Conversão embalagem → unidade de uso</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="text-xs text-gray-500">Qtd por embalagem</label><input id="fi_qtd_emb" type="number" step="0.01" class="inp mt-1" placeholder="Ex: 100" oninput="previewCustoUso()"></div>
+            <div><label class="text-xs text-gray-500">Unidade de uso</label><input id="fi_unidade_uso" class="inp mt-1" placeholder="UI, ml, par"></div>
+          </div>
+          <div id="fi_preview_custo" class="text-xs text-rose-600 font-medium hidden"></div>
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <div><label class="text-xs text-gray-500">Custo/Un (R$)</label><input id="fi_custo" type="number" step="0.0001" class="inp mt-1"></div>
-          <div><label class="text-xs text-gray-500">Estoque atual</label><input id="fi_estoque" type="number" step="0.01" class="inp mt-1"></div>
+          <div><label class="text-xs text-gray-500" id="fi_label_estoque">Estoque atual</label><input id="fi_estoque" type="number" step="0.01" class="inp mt-1"></div>
+          <div><label class="text-xs text-gray-500">Estoque mínimo (alerta)</label><input id="fi_min" type="number" step="0.01" class="inp mt-1"></div>
         </div>
-        <div><label class="text-xs text-gray-500">Estoque mínimo (alerta)</label><input id="fi_min" type="number" step="0.01" class="inp mt-1"></div>
       </div>
       <div class="flex gap-2 mt-4 justify-end">
         <button onclick="fecharModalInsumo()" class="btn btn-secondary">Cancelar</button>
@@ -1243,12 +1279,16 @@ function renderTbodyInsumos(){
   if(!S.insumos.length){ tb.innerHTML=`<tr><td colspan="7" class="text-center py-6 text-gray-400">Nenhum insumo cadastrado</td></tr>`; return; }
   tb.innerHTML=S.insumos.map(i=>{
     const baixo=(+i.estoque||0)<=(+i.estoque_min||0)&&(+i.estoque_min||0)>0;
+    const emb=!!i.qtd_por_embalagem;
+    const cu=custoUso(i); const lu=labelUso(i);
+    const estoqueLabel=emb?`${i.estoque||0} ${i.unidade||'emb'}`:`${i.estoque||0} ${lu}`;
+    const embInfo=emb?`<span class="text-xs text-gray-400 block">${i.qtd_por_embalagem}${lu}/${i.unidade||'emb'}</span>`:'';
     return `<tr class="border-b hover:bg-gray-50">
-      <td class="p-2 font-medium">${escHtml(i.nome)}</td>
+      <td class="p-2 font-medium">${escHtml(i.nome)}${embInfo}</td>
       <td class="p-2 text-center text-xs text-gray-500">${i.categoria||'-'}</td>
-      <td class="p-2 text-center">${fmtBRL(i.custo)}</td>
-      <td class="p-2 text-center">${i.estoque||0} ${i.unidade||''}</td>
-      <td class="p-2 text-center text-gray-400">${i.estoque_min||0}</td>
+      <td class="p-2 text-center text-xs">${fmtBRL(cu)}<span class="text-gray-400">/${lu}</span></td>
+      <td class="p-2 text-center">${estoqueLabel}</td>
+      <td class="p-2 text-center text-gray-400 text-xs">${i.estoque_min||0}</td>
       <td class="p-2 text-center"><span class="tag ${baixo?'tag-red':'tag-green'}">${baixo?'⚠ Baixo':'OK'}</span></td>
       <td class="p-2 text-center no-print">
         <button onclick="abrirModalInsumo('${i.id}')" class="btn btn-sm btn-secondary">✏</button>
@@ -1264,25 +1304,63 @@ function renderListaCompras(){
   ${last.map(c=>`<tr class="border-b"><td class="p-2 text-xs">${c.data}</td><td class="p-2">${escHtml(c.insumo_nome||'-')}</td><td class="p-2 text-center">${c.qtd}</td><td class="p-2 text-center">${fmtBRL(c.valor_total)}</td></tr>`).join('')}
   </tbody></table>`;
 }
+function toggleInsumoTipo(){
+  const tipo=document.getElementById('fi_tipo').value;
+  const emb=tipo==='embalagem';
+  document.getElementById('fi_bloco_embalagem').classList.toggle('hidden',!emb);
+  document.getElementById('fi_label_custo').textContent=emb?'Custo da embalagem (R$)':'Custo por unidade (R$)';
+  document.getElementById('fi_label_unidade').textContent=emb?'Nome da embalagem (frasco, caixa…)':'Unidade (un, par, ml, g)';
+  document.getElementById('fi_label_estoque').textContent=emb?'Estoque atual (embalagens)':'Estoque atual';
+  previewCustoUso();
+}
+function previewCustoUso(){
+  const el=document.getElementById('fi_preview_custo'); if(!el) return;
+  const custo=+document.getElementById('fi_custo').value||0;
+  const qtd=+document.getElementById('fi_qtd_emb').value||0;
+  const un=document.getElementById('fi_unidade_uso').value||'un';
+  if(custo&&qtd){ el.textContent=`→ Custo por ${un}: ${fmtBRL(custo/qtd)}`; el.classList.remove('hidden'); }
+  else el.classList.add('hidden');
+}
+
 let editingInsumoId=null;
 function abrirModalInsumo(id=null){
   editingInsumoId=id; const i=id?S.insumos.find(x=>x.id===id):null;
   document.getElementById('modalInsumoTitle').textContent=id?'Editar Insumo':'Novo Insumo';
-  ['fi_nome','fi_cat','fi_unidade','fi_custo','fi_estoque','fi_min'].forEach(fid=>{ const el=document.getElementById(fid); if(el) el.value=''; });
-  if(i){ document.getElementById('fi_nome').value=i.nome||''; document.getElementById('fi_cat').value=i.categoria||'';
-    document.getElementById('fi_unidade').value=i.unidade||''; document.getElementById('fi_custo').value=i.custo||'';
-    document.getElementById('fi_estoque').value=i.estoque||''; document.getElementById('fi_min').value=i.estoque_min||''; }
+  ['fi_nome','fi_cat','fi_unidade','fi_custo','fi_estoque','fi_min','fi_qtd_emb','fi_unidade_uso'].forEach(fid=>{ const el=document.getElementById(fid); if(el) el.value=''; });
+  const tipo=i?.qtd_por_embalagem?'embalagem':'simples';
+  document.getElementById('fi_tipo').value=tipo;
+  if(i){
+    document.getElementById('fi_nome').value=i.nome||'';
+    document.getElementById('fi_cat').value=i.categoria||'';
+    document.getElementById('fi_custo').value=i.custo||'';
+    document.getElementById('fi_estoque').value=i.estoque||'';
+    document.getElementById('fi_min').value=i.estoque_min||'';
+    if(tipo==='embalagem'){
+      document.getElementById('fi_unidade').value=i.unidade||'';
+      document.getElementById('fi_qtd_emb').value=i.qtd_por_embalagem||'';
+      document.getElementById('fi_unidade_uso').value=i.unidade_uso||'';
+    } else {
+      document.getElementById('fi_unidade').value=i.unidade||i.unidade_uso||'';
+    }
+  }
+  toggleInsumoTipo();
   document.getElementById('modalInsumo').classList.remove('hidden');
 }
 function fecharModalInsumo(){ document.getElementById('modalInsumo').classList.add('hidden'); }
 async function salvarInsumo(){
   const nome=document.getElementById('fi_nome').value.trim(); if(!nome) return showToast('Informe o nome','error');
   const id=editingInsumoId||uid();
-  const obj={id,nome,categoria:document.getElementById('fi_cat').value.trim()||'Geral',
+  const tipo=document.getElementById('fi_tipo').value;
+  const emb=tipo==='embalagem';
+  const obj={id,nome,
+    categoria:document.getElementById('fi_cat').value.trim()||'Geral',
     unidade:document.getElementById('fi_unidade').value.trim(),
     custo:+document.getElementById('fi_custo').value||0,
     estoque:+document.getElementById('fi_estoque').value||0,
-    estoque_min:+document.getElementById('fi_min').value||0};
+    estoque_min:+document.getElementById('fi_min').value||0,
+    qtd_por_embalagem:emb?(+document.getElementById('fi_qtd_emb').value||1):null,
+    unidade_uso:emb?document.getElementById('fi_unidade_uso').value.trim():null
+  };
   S.insumos=S.insumos.filter(i=>i.id!==id); S.insumos.push(obj);
   lsSave('insumos',S.insumos); await cloudUpsert('insumos',obj);
   fecharModalInsumo(); renderTbodyInsumos(); showToast('Insumo salvo ✓');

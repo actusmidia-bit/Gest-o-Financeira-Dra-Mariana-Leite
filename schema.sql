@@ -16,7 +16,10 @@ DROP TABLE IF EXISTS config_clinica CASCADE;
 
 CREATE TABLE insumos (
   id TEXT PRIMARY KEY, user_id UUID REFERENCES auth.users NOT NULL,
-  categoria TEXT, nome TEXT NOT NULL, unidade TEXT,
+  categoria TEXT, nome TEXT NOT NULL,
+  unidade TEXT,
+  qtd_por_embalagem DECIMAL(10,4) DEFAULT NULL,
+  unidade_uso TEXT DEFAULT NULL,
   custo DECIMAL(10,4) DEFAULT 0, estoque DECIMAL(10,2) DEFAULT 0,
   estoque_min DECIMAL(10,2) DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW()
 );
