@@ -68,11 +68,17 @@ body{font-family:'Segoe UI',sans-serif;background:#fdf2f4;}
       <h1 class="text-xl font-bold text-gray-800">Gestão Financeira</h1>
       <p class="text-sm text-gray-500">Dra Mariana Leite</p>
     </div>
+    <div class="flex gap-2 mb-4">
+      <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 tab-btn active">Entrar</button>
+      <button id="tabSignup" onclick="switchAuthTab('signup')" class="flex-1 tab-btn">Criar Conta</button>
+    </div>
     <div class="space-y-3">
-      <input id="loginEmail" type="email" class="inp" placeholder="E-mail">
-      <input id="loginPass" type="password" class="inp" placeholder="Senha">
-      <button onclick="auth.login()" class="btn btn-primary w-full justify-center">Entrar</button>
+      <input id="loginEmail" type="email" class="inp" placeholder="E-mail" autocomplete="email">
+      <input id="loginPass" type="password" class="inp" placeholder="Senha" autocomplete="current-password">
+      <input id="loginPassConfirm" type="password" class="inp hidden" placeholder="Confirmar senha" autocomplete="new-password">
+      <button id="btnLogin" class="btn btn-primary w-full justify-center">Entrar</button>
       <p id="loginErr" class="text-red-500 text-sm text-center hidden"></p>
+      <p id="loginOk" class="text-green-600 text-sm text-center hidden"></p>
     </div>
   </div>
 </div>
@@ -86,7 +92,7 @@ body{font-family:'Segoe UI',sans-serif;background:#fdf2f4;}
     <span class="text-xs text-gray-400 hidden sm:block">Dra Mariana Leite</span>
     <div class="ml-auto flex items-center gap-2">
       <span id="syncStatus" class="text-xs text-gray-400"></span>
-      <button onclick="auth.logout()" class="btn btn-sm btn-secondary">Sair</button>
+      <button onclick="doLogout()" class="btn btn-sm btn-secondary">Sair</button>
     </div>
   </header>
   <div class="flex flex-1 overflow-hidden">
@@ -139,45 +145,90 @@ async function cloudUpsert(table,obj){ try{ const {error}=await sb.from(table).u
 async function cloudDelete(table,id){ try{ await sb.from(table).delete().eq('id',id).eq('user_id',S.user.id); }catch(e){} }
 
 // ── Auth ──────────────────────────────────────
-window.auth = {
-  async login() {
-    const emailEl=document.getElementById('loginEmail');
-    const passEl=document.getElementById('loginPass');
-    const err=document.getElementById('loginErr');
-    const btn=document.querySelector('#loginPage .btn-primary');
-    const email=(emailEl?.value||'').trim();
-    const pass=passEl?.value||'';
-    if(err) err.classList.add('hidden');
-    if(!email||!pass){
-      if(err){ err.textContent='Preencha e-mail e senha.'; err.classList.remove('hidden'); }
-      return;
+let _authMode = 'login';
+
+function switchAuthTab(mode) {
+  _authMode = mode;
+  const isLogin = mode === 'login';
+  document.getElementById('tabLogin').classList.toggle('active', isLogin);
+  document.getElementById('tabSignup').classList.toggle('active', !isLogin);
+  document.getElementById('loginPassConfirm').classList.toggle('hidden', isLogin);
+  document.getElementById('btnLogin').textContent = isLogin ? 'Entrar' : 'Criar Conta';
+  document.getElementById('loginErr').classList.add('hidden');
+  document.getElementById('loginOk').classList.add('hidden');
+}
+
+function showAuthErr(msg) {
+  const el=document.getElementById('loginErr');
+  if(el){ el.textContent=msg; el.classList.remove('hidden'); }
+}
+function showAuthOk(msg) {
+  const el=document.getElementById('loginOk');
+  if(el){ el.textContent=msg; el.classList.remove('hidden'); }
+}
+
+async function doLogin() {
+  const email=(document.getElementById('loginEmail')?.value||'').trim();
+  const pass=document.getElementById('loginPass')?.value||'';
+  const passConfirm=document.getElementById('loginPassConfirm')?.value||'';
+  const btn=document.getElementById('btnLogin');
+  document.getElementById('loginErr').classList.add('hidden');
+  document.getElementById('loginOk').classList.add('hidden');
+
+  if(!email||!pass){ showAuthErr('Preencha e-mail e senha.'); return; }
+
+  if(_authMode==='signup'){
+    if(pass.length<6){ showAuthErr('Senha precisa ter ao menos 6 caracteres.'); return; }
+    if(pass!==passConfirm){ showAuthErr('As senhas não coincidem.'); return; }
+    if(btn){ btn.textContent='Criando…'; btn.disabled=true; }
+    let res;
+    try{ res=await sb.auth.signUp({email,password:pass}); }catch(e){ res={error:e}; }
+    if(btn){ btn.textContent='Criar Conta'; btn.disabled=false; }
+    if(res?.error){ showAuthErr(res.error.message||'Erro ao criar conta.'); return; }
+    if(res?.data?.user && !res.data.session){
+      showAuthOk('Conta criada! Verifique seu e-mail para confirmar antes de entrar.');
+    } else if(res?.data?.session){
+      S.user=res.data.session.user;
+      loadLocalStorage(); showApp(); loadCloud();
+    } else {
+      showAuthOk('Conta criada! Faça login agora.');
+      switchAuthTab('login');
     }
-    if(btn){ btn.textContent='Entrando…'; btn.disabled=true; }
-    let result;
-    try{ result=await sb.auth.signInWithPassword({email,password:pass}); }
-    catch(e){ result={error:e}; }
-    if(btn){ btn.textContent='Entrar'; btn.disabled=false; }
-    const {data,error}=result||{};
-    if(error||!data?.user){
-      const msg=error?.message||'Erro ao entrar. Tente novamente.';
-      if(err){ err.textContent=msg.includes('credentials')||msg.includes('password')?'E-mail ou senha incorretos.':msg; err.classList.remove('hidden'); }
-      return;
-    }
-    S.user=data.user;
-    loadLocalStorage();
-    showApp();
-    loadCloud();
-  },
-  async logout(){
-    await sb.auth.signOut(); S.user=null;
-    document.getElementById('appShell').classList.add('hidden');
-    document.getElementById('loginPage').classList.remove('hidden');
+    return;
   }
-};
+
+  // login
+  if(btn){ btn.textContent='Entrando…'; btn.disabled=true; }
+  let res;
+  try{ res=await sb.auth.signInWithPassword({email,password:pass}); }catch(e){ res={error:e}; }
+  if(btn){ btn.textContent='Entrar'; btn.disabled=false; }
+  if(res?.error||!res?.data?.user){
+    const msg=res?.error?.message||'Erro ao entrar.';
+    showAuthErr(msg.includes('credentials')||msg.includes('Invalid')?'E-mail ou senha incorretos.':msg);
+    return;
+  }
+  S.user=res.data.user;
+  loadLocalStorage(); showApp(); loadCloud();
+}
+
+async function doLogout(){
+  await sb.auth.signOut(); S.user=null;
+  document.getElementById('appShell').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+}
 
 sb.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_OUT'){ S.user=null; document.getElementById('appShell').classList.add('hidden'); document.getElementById('loginPage').classList.remove('hidden'); }
   if(event==='TOKEN_REFRESHED'&&session) S.user=session.user;
+});
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const btn=document.getElementById('btnLogin');
+  if(btn) btn.addEventListener('click', doLogin);
+  const passEl=document.getElementById('loginPass');
+  if(passEl) passEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  const passConfirmEl=document.getElementById('loginPassConfirm');
+  if(passConfirmEl) passConfirmEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 });
 
 // ── Load all data ─────────────────────────────
@@ -1024,7 +1075,7 @@ function renderConfigurar(){
             <div>Capacidade: <strong>${S.cfg.horas||139.41}h × 60 = ${((S.cfg.horas||139.41)*60).toFixed(0)} min/mês</strong></div>
             <hr class="border-rose-200 my-2">
             <code class="block bg-white rounded p-2 text-xs">Preço = Custo ÷ (1 − ${+(S.cfg.imposto||6)}% − ${+(S.cfg.cartao||3.5)}% − ${+(S.cfg.lucro||30)}%)</code>
-            <div class="text-xs text-gray-500">Divisor atual: ${((1-(+(S.cfg.imposto||6)++(S.cfg.cartao||3.5)++(S.cfg.lucro||30))/100)*100).toFixed(1)}% do preço cobre custos</div>
+            <div class="text-xs text-gray-500">Divisor atual: ${((1-(+(S.cfg.imposto||6) + +(S.cfg.cartao||3.5) + +(S.cfg.lucro||30))/100)*100).toFixed(1)}% do preço cobre custos</div>
           </div>
         </div>
       </div>
