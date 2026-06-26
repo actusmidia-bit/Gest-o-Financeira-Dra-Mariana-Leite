@@ -137,7 +137,6 @@ function lsLoadObj(t,def={}){ try{ return JSON.parse(localStorage.getItem(lsKey(
 // ── Supabase ──────────────────────────────────
 async function cloudUpsert(table,obj){ try{ const {error}=await sb.from(table).upsert({...obj,user_id:S.user.id}); if(error) console.warn(table,error.message); }catch(e){} }
 async function cloudDelete(table,id){ try{ await sb.from(table).delete().eq('id',id).eq('user_id',S.user.id); }catch(e){} }
-async function cloudLoad(table){ try{ const {data,error}=await sb.from(table).select('*').eq('user_id',S.user.id); if(error) return null; return data; }catch(e){ return null; } }
 
 // ── Auth ──────────────────────────────────────
 const auth = {
@@ -148,7 +147,10 @@ const auth = {
     err.classList.add('hidden');
     const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
     if(error){ err.textContent='E-mail ou senha incorretos.'; err.classList.remove('hidden'); return; }
-    S.user=data.user; await loadAll(); showApp();
+    S.user=data.user;
+    loadLocalStorage(); // carrega localStorage imediatamente
+    showApp();          // mostra o app sem esperar cloud
+    loadCloud();        // sincroniza cloud em background
   },
   async logout(){
     await sb.auth.signOut(); S.user=null;
@@ -163,21 +165,45 @@ sb.auth.onAuthStateChange((event,session)=>{
 });
 
 // ── Load all data ─────────────────────────────
-async function loadAll() {
-  setSyncStatus('Sincronizando…','text-yellow-500');
+function loadLocalStorage() {
   S.insumos=lsLoad('insumos'); S.fixos=lsLoad('fixos'); S.procs=lsLoad('procs');
   S.regs=lsLoad('regs'); S.cfg=lsLoadObj('cfg',{horas:139.41,imposto:6,cartao:3.5,lucro:30,pro_labore:0});
   S.recebimentos=lsLoad('recebimentos'); S.despesas=lsLoad('despesas');
   S.compras=lsLoad('compras'); S.metas=lsLoad('metas');
+}
+
+async function cloudLoad(table){
+  try{
+    const t=new Promise(r=>setTimeout(()=>r(null),5000));
+    const q=sb.from(table).select('*').eq('user_id',S.user.id);
+    const res=await Promise.race([q,t]);
+    if(!res||res.error) return null;
+    return res.data;
+  }catch(e){ return null; }
+}
+
+async function loadCloud() {
+  setSyncStatus('Sincronizando…','text-yellow-500');
   const tables=[['insumos','insumos'],['custos_fixos','fixos'],['procedimentos','procs'],
     ['registros','regs'],['recebimentos','recebimentos'],
     ['despesas_variaveis','despesas'],['compras_estoque','compras'],['metas_mensais','metas']];
-  const results = await Promise.all(tables.map(([tbl])=>cloudLoad(tbl)));
-  results.forEach((d,i)=>{ if(d){ S[tables[i][1]]=d; lsSave(tables[i][1],d); } });
-  try{ const cfgR=await sb.from('config_clinica').select('*').eq('user_id',S.user.id).maybeSingle(); if(cfgR.data){ S.cfg={...S.cfg,...cfgR.data}; lsSave('cfg',S.cfg); } }catch(e){}
+  try{
+    const results=await Promise.all(tables.map(([tbl])=>cloudLoad(tbl)));
+    results.forEach((d,i)=>{ if(d){ S[tables[i][1]]=d; lsSave(tables[i][1],d); } });
+  }catch(e){}
+  try{
+    const t=new Promise(r=>setTimeout(()=>r(null),5000));
+    const q=sb.from('config_clinica').select('*').eq('user_id',S.user.id).maybeSingle();
+    const cfgR=await Promise.race([q,t]);
+    if(cfgR?.data){ S.cfg={...S.cfg,...cfgR.data}; lsSave('cfg',S.cfg); }
+  }catch(e){}
   setSyncStatus('✓ Sincronizado','text-green-500');
   setTimeout(()=>setSyncStatus(''),3000);
+  // re-render current page with fresh data
+  if(currentPage) goTo(currentPage);
 }
+
+async function loadAll() { loadLocalStorage(); await loadCloud(); }
 
 function showApp(){
   document.getElementById('loginPage').classList.add('hidden');
@@ -1225,7 +1251,12 @@ async function salvarCompra(){
   try{
     const timeout=new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),5000));
     const {data:{session}}=await Promise.race([sb.auth.getSession(),timeout]);
-    if(session?.user){ S.user=session.user; await loadAll(); showApp(); }
+    if(session?.user){
+      S.user=session.user;
+      loadLocalStorage();
+      showApp();
+      loadCloud();
+    }
   }catch(e){}
 })();
 </script>
