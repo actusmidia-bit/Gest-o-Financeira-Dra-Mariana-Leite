@@ -112,7 +112,7 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
 const S = { user:null, insumos:[], fixos:[], procs:[], regs:[], cfg:{},
-  recebimentos:[], despesas:[], compras:[], metas:[] };
+  recebimentos:[], despesas:[], compras:[], metas:[], financiamentos:[] };
 let currentPage = 'visaogeral';
 
 // ── Utils ─────────────────────────────────────
@@ -137,6 +137,122 @@ function setSyncStatus(msg,color='text-gray-400'){ const el=document.getElementB
 // custo por unidade de uso (ex: frasco 100UI → custo/UI = custo_frasco/100)
 function custoUso(ins){ return (+ins.custo||0)/(+ins.qtd_por_embalagem||1); }
 function labelUso(ins){ return ins.unidade_uso||ins.unidade||'un'; }
+
+// ── Seed default data ─────────────────────────
+const PAGS_OPTS = ['Dinheiro','PIX','Débito','Crédito 1x','Crédito 2x','Crédito 3x','Crédito 4x','Crédito 6x','Crédito 12x'];
+const DEFAULT_PROCS=[
+  {nome:'Pacote — 03 Botox Terço Superior',categoria:'Toxina Botulínica'},
+  {nome:'Bioestimulador de Colágeno',categoria:'Bioestimulação'},
+  {nome:'Preenchimento 7ml',categoria:'Preenchimento'},
+  {nome:'Preenchimento 8ml',categoria:'Preenchimento'},
+  {nome:'Preenchimento 9ml',categoria:'Preenchimento'},
+  {nome:'Preenchimento 10ml',categoria:'Preenchimento'},
+  {nome:'Preenchimento 11ml',categoria:'Preenchimento'},
+  {nome:'Preenchimento 12ml',categoria:'Preenchimento'},
+  {nome:'Preenchimento 13ml',categoria:'Preenchimento'},
+  {nome:'Preenchimento 14ml',categoria:'Preenchimento'},
+  {nome:'Skinbooster — 2 seringas',categoria:'Skinbooster'},
+  {nome:'Rinomodelação',categoria:'Preenchimento'},
+  {nome:'Enzima de Emagrecimento',categoria:'Enzima'},
+  {nome:'Enzima de Celulite',categoria:'Enzima'},
+  {nome:'Enzima de Gordura Localizada',categoria:'Enzima'},
+  {nome:'Enzima de Lipo de Papada',categoria:'Enzima'},
+  {nome:'Microagulhamento + PDRN',categoria:'Microagulhamento'},
+  {nome:'Microagulhamento + Capilar Alopecia',categoria:'Microagulhamento'},
+  {nome:'Botox Full Face',categoria:'Toxina Botulínica'},
+  {nome:'Lavieen',categoria:'Laser'},
+  {nome:'Enzima BTX',categoria:'Enzima'},
+  {nome:'Bioestimulador Radiesse',categoria:'Bioestimulação'},
+  {nome:'Bioestimulador Rennova Diamond',categoria:'Bioestimulação'},
+  {nome:'Bioestimulador Sculptra',categoria:'Bioestimulação'},
+  {nome:'Glúteo Max',categoria:'Corporal'},
+  {nome:'Criolipólise',categoria:'Corporal'},
+  {nome:'Intradermoterapia',categoria:'Outros'},
+  {nome:'Fio PDO Espiculado',categoria:'Fios'},
+  {nome:'Fio PDO Liso',categoria:'Fios'},
+  {nome:'Fio PDO Filler',categoria:'Fios'},
+  {nome:'Fio PDO EYE BAG Olhos',categoria:'Fios'},
+  {nome:'LED',categoria:'Outros'},
+  {nome:'Limpeza de Pele',categoria:'Estética'},
+  {nome:'Lipo Enzimática',categoria:'Enzima'},
+  {nome:'Microagulhamento',categoria:'Microagulhamento'},
+  {nome:'Preenchimento com Ácido Hialurônico',categoria:'Preenchimento'},
+  {nome:'Spectra',categoria:'Laser'},
+  {nome:'Skinbooster',categoria:'Skinbooster'},
+  {nome:'Toxina Botulínica',categoria:'Toxina Botulínica'},
+  {nome:'Ultrassom Microfocado Full Face',categoria:'Ultrassom',sessoes_pacote:4},
+  {nome:'Ultrassom Microfocado Bochecha + Papada',categoria:'Ultrassom',sessoes_pacote:4},
+  {nome:'Ultrassom Microfocado Pescoço',categoria:'Ultrassom',sessoes_pacote:4},
+  {nome:'Ultrassom Microfocado Papada',categoria:'Ultrassom',sessoes_pacote:4},
+  {nome:'Ultrassom Microfocado Bochecha / Terço Médio',categoria:'Ultrassom',sessoes_pacote:4},
+  {nome:'Ultrassom Microfocado Terço Superior',categoria:'Ultrassom',sessoes_pacote:4},
+];
+const DEFAULT_INSUMOS=[
+  {nome:'Seringa 1ml',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:100,unidade_uso:'un'},
+  {nome:'Seringa 3ml',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:100,unidade_uso:'un'},
+  {nome:'Seringa 5ml',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:100,unidade_uso:'un'},
+  {nome:'Seringa 10ml',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:100,unidade_uso:'un'},
+  {nome:'Seringa e agulha',categoria:'Descartáveis',unidade:'un'},
+  {nome:'Agulha 22g',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:100,unidade_uso:'un'},
+  {nome:'Agulha 30g',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:100,unidade_uso:'un'},
+  {nome:'Cânula',categoria:'Descartáveis',unidade:'un'},
+  {nome:'Gaze',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:500,unidade_uso:'un'},
+  {nome:'Luva',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:100,unidade_uso:'par'},
+  {nome:'Máscara',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:50,unidade_uso:'un'},
+  {nome:'Touca',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:100,unidade_uso:'un'},
+  {nome:'Lenço umedecido',categoria:'Descartáveis',unidade:'cx'},
+  {nome:'Band Aid',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:100,unidade_uso:'un'},
+  {nome:'Curativo',categoria:'Descartáveis',unidade:'un'},
+  {nome:'Lençol',categoria:'Descartáveis',unidade:'rl'},
+  {nome:'Descarpack',categoria:'Descartáveis',unidade:'un'},
+  {nome:'Lençol de maca',categoria:'Descartáveis',unidade:'rl'},
+  {nome:'Toalha descartável',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:50,unidade_uso:'un'},
+  {nome:'Propés',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:100,unidade_uso:'par'},
+  {nome:'Máscara descartável',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:50,unidade_uso:'un'},
+  {nome:'Luva descartável',categoria:'Descartáveis',unidade:'cx',qtd_por_embalagem:100,unidade_uso:'par'},
+  {nome:'Álcool 70',categoria:'Higiene',unidade:'L'},
+  {nome:'Clorexidina',categoria:'Higiene',unidade:'L'},
+  {nome:'Sabonete neutro',categoria:'Higiene',unidade:'un'},
+  {nome:'Lisoform',categoria:'Higiene',unidade:'L'},
+  {nome:'Álcool em gel',categoria:'Higiene',unidade:'un'},
+  {nome:'Água micelar',categoria:'Higiene',unidade:'un'},
+  {nome:'Detergente enzimático',categoria:'Higiene',unidade:'un'},
+  {nome:'Água para injeção',categoria:'Medicamentos',unidade:'un'},
+  {nome:'Soro fisiológico 0,9% 10ml',categoria:'Medicamentos',unidade:'un'},
+  {nome:'Anestésico',categoria:'Medicamentos',unidade:'un'},
+  {nome:'Pomada Hirudoid',categoria:'Medicamentos',unidade:'un'},
+  {nome:'Cartucho',categoria:'Equipamentos',unidade:'un'},
+  {nome:'Saco plástico transparente',categoria:'Uso Geral',unidade:'cx'},
+  {nome:'Algodão',categoria:'Uso Geral',unidade:'cx'},
+  {nome:'Palito',categoria:'Uso Geral',unidade:'cx'},
+  {nome:'Cotonete',categoria:'Uso Geral',unidade:'cx'},
+  {nome:'Escovinha de sobrancelha',categoria:'Uso Geral',unidade:'un'},
+  {nome:'Caneta para marcação',categoria:'Uso Geral',unidade:'un'},
+  {nome:'Embalagem para esterilização',categoria:'Uso Geral',unidade:'un'},
+  {nome:'Água destilada',categoria:'Uso Geral',unidade:'L'},
+  {nome:'Cafezinho',categoria:'Outros',unidade:'un'},
+  {nome:'Kit Skin Care Boas Vindas',categoria:'Outros',unidade:'un'},
+  {nome:'Certificado + apostila',categoria:'Outros',unidade:'un'},
+];
+function seedDefaultData(){
+  const key=lsKey('seeded_v2'); if(localStorage.getItem(key)) return;
+  if(S.procs.length===0){
+    DEFAULT_PROCS.forEach(p=>{
+      const obj={id:uid(),nome:p.nome,categoria:p.categoria,tempo:0,preco:0,ficha:[],sessoes_pacote:p.sessoes_pacote||0};
+      S.procs.push(obj); cloudUpsert('procedimentos',obj);
+    });
+    lsSave('procs',S.procs);
+  }
+  if(S.insumos.length===0){
+    DEFAULT_INSUMOS.forEach(ins=>{
+      const obj={id:uid(),nome:ins.nome,categoria:ins.categoria,unidade:ins.unidade||'un',
+        custo:0,estoque:0,estoque_min:0,qtd_por_embalagem:ins.qtd_por_embalagem||null,unidade_uso:ins.unidade_uso||null};
+      S.insumos.push(obj); cloudUpsert('insumos',obj);
+    });
+    lsSave('insumos',S.insumos);
+  }
+  localStorage.setItem(key,'1');
+}
 
 // ── LocalStorage ──────────────────────────────
 function lsKey(t){ return `gf_${S.user.id.slice(0,8)}_${t}`; }
@@ -240,7 +356,7 @@ function loadLocalStorage() {
   S.insumos=lsLoad('insumos'); S.fixos=lsLoad('fixos'); S.procs=lsLoad('procs');
   S.regs=lsLoad('regs'); S.cfg=lsLoadObj('cfg',{horas:139.41,imposto:6,cartao:3.5,lucro:30,pro_labore:0});
   S.recebimentos=lsLoad('recebimentos'); S.despesas=lsLoad('despesas');
-  S.compras=lsLoad('compras'); S.metas=lsLoad('metas');
+  S.compras=lsLoad('compras'); S.metas=lsLoad('metas'); S.financiamentos=lsLoad('financiamentos');
 }
 
 async function cloudLoad(table){
@@ -257,7 +373,8 @@ async function loadCloud() {
   setSyncStatus('Sincronizando…','text-yellow-500');
   const tables=[['insumos','insumos'],['custos_fixos','fixos'],['procedimentos','procs'],
     ['registros','regs'],['recebimentos','recebimentos'],
-    ['despesas_variaveis','despesas'],['compras_estoque','compras'],['metas_mensais','metas']];
+    ['despesas_variaveis','despesas'],['compras_estoque','compras'],['metas_mensais','metas'],
+    ['financiamentos','financiamentos']];
   try{
     const results=await Promise.all(tables.map(([tbl])=>cloudLoad(tbl)));
     results.forEach((d,i)=>{ if(d){ S[tables[i][1]]=d; lsSave(tables[i][1],d); } });
@@ -279,6 +396,7 @@ async function loadAll() { loadLocalStorage(); await loadCloud(); }
 function showApp(){
   document.getElementById('loginPage').classList.add('hidden');
   document.getElementById('appShell').classList.remove('hidden');
+  seedDefaultData();
   goTo('visaogeral');
 }
 
@@ -306,11 +424,14 @@ function calcDRE(mes){
   const totalFixo=S.fixos.reduce((s,f)=>s+(+f.valor||0),0);
   const totalDespesas=S.despesas.filter(d=>d.data&&d.data.startsWith(mes)).reduce((s,d)=>s+(+d.valor||0),0);
   const impostos=receita*(+(S.cfg.imposto||6)/100);
-  const resultado=lucroBruto-totalFixo-totalDespesas-impostos;
+  // Financiamentos ativos: parcelas mensais restantes
+  const totalFinanciamentos=(S.financiamentos||[]).filter(f=>(+f.parcelas_pagas||0)<(+f.parcelas_total||1))
+    .reduce((s,f)=>s+(+f.parcela_valor||0),0);
+  const resultado=lucroBruto-totalFixo-totalDespesas-impostos-totalFinanciamentos;
   const proLabore=+(S.cfg.pro_labore||0);
   const sobra=resultado-proLabore;
   const margem=receita>0?(resultado/receita)*100:0;
-  return {receita,custoInsumos,custoTempo,lucroBruto,totalFixo,totalDespesas,impostos,resultado,proLabore,sobra,margem,atendimentos:regs.length};
+  return {receita,custoInsumos,custoTempo,lucroBruto,totalFixo,totalDespesas,totalFinanciamentos,impostos,resultado,proLabore,sobra,margem,atendimentos:regs.length};
 }
 
 function calcPreco(custoInsumos,minutos){
@@ -428,6 +549,7 @@ function renderVisaoGeral(){
         <div class="dre-row text-red-500"><span class="pl-3">(-) Custo Insumos</span><span>(${fmtBRL(dre.custoInsumos)})</span></div>
         <div class="dre-row text-red-500"><span class="pl-3">(-) Custo Fixos</span><span>(${fmtBRL(dre.totalFixo)})</span></div>
         <div class="dre-row text-red-500"><span class="pl-3">(-) Despesas Variáveis</span><span>(${fmtBRL(dre.totalDespesas)})</span></div>
+        ${dre.totalFinanciamentos>0?`<div class="dre-row text-red-500"><span class="pl-3">(-) Financiamentos</span><span>(${fmtBRL(dre.totalFinanciamentos)})</span></div>`:''}
         <div class="dre-total ${dre.resultado>=0?'bg-green-50 text-green-700':'bg-red-50 text-red-700'}">
           <span>= Resultado Operacional</span><span>${fmtBRL(dre.resultado)}</span>
         </div>
@@ -467,14 +589,21 @@ function renderProtocolos(){
           <select id="fa_proc" class="inp mt-1" onchange="preencherAtendProc()">
             <option value="">Selecione…</option>${S.procs.map(p=>`<option value="${p.id}">${escHtml(p.nome)}</option>`).join('')}
           </select></div>
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="text-xs text-gray-500">Preço (R$)</label><input id="fa_preco" type="number" class="inp mt-1"></div>
-          <div><label class="text-xs text-gray-500">Pagamento</label>
-            <select id="fa_pag" class="inp mt-1">
-              <option>Dinheiro</option><option>PIX</option><option>Débito</option>
-              <option>Crédito 1x</option><option>Crédito 2x</option><option>Crédito 3x</option>
-              <option>Crédito 4x</option><option>Crédito 6x</option><option>Crédito 12x</option>
-            </select></div>
+        <div><label class="text-xs text-gray-500">Preço Total (R$)</label><input id="fa_preco" type="number" class="inp mt-1" oninput="atualizarSplitInfo()"></div>
+        <div><label class="text-xs text-gray-500 mb-1 block">Pagamento</label>
+          <div class="space-y-2">
+            <div class="flex gap-2">
+              <select id="fa_pag" class="inp inp-sm flex-1">${PAGS_OPTS.map(o=>`<option>${o}</option>`).join('')}</select>
+              <input id="fa_val1" type="number" step="0.01" class="inp inp-sm w-28" placeholder="R$ (parcial)" oninput="atualizarSplitInfo()">
+            </div>
+            <div class="flex gap-2 items-center">
+              <select id="fa_pag2" class="inp inp-sm flex-1" onchange="atualizarSplitInfo()">
+                <option value="">— 2º pagamento (opcional) —</option>
+                ${PAGS_OPTS.map(o=>`<option>${o}</option>`).join('')}
+              </select>
+              <span id="fa_val2_show" class="text-xs text-rose-600 font-semibold w-28 text-right hidden"></span>
+            </div>
+          </div>
         </div>
         <div id="resumoAtend" class="bg-rose-50 rounded-xl p-3 text-xs hidden"></div>
       </div>
@@ -533,7 +662,7 @@ function renderListaProcs(){
         return `<div class="card">
           <div class="flex items-start justify-between gap-3">
             <div class="flex-1">
-              <div class="font-semibold text-gray-800">${idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':''} ${escHtml(p.nome)}</div>
+              <div class="font-semibold text-gray-800">${idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':''} ${escHtml(p.nome)}${p.sessoes_pacote>0?` <span class="tag tag-purple text-xs">📦 ${p.sessoes_pacote} sessões</span>`:''}</div>
               <div class="text-xs text-gray-500">${p.tempo||0} min</div>
             </div>
             <div class="text-right flex-shrink-0">
@@ -569,16 +698,17 @@ function abrirModalProc(id=null){
   const p=id?S.procs.find(x=>x.id===id):null;
   fichaTemp=p&&Array.isArray(p.ficha)?JSON.parse(JSON.stringify(p.ficha)):[];
   document.getElementById('modalProcTitle').textContent=id?'Editar Protocolo':'Novo Protocolo';
-  const cats=['Bioestimulação','Preenchimento','Skinbooster','Toxina Botulínica','Fios','Peeling','Laser','Outros'];
+  const cats=['Toxina Botulínica','Bioestimulação','Preenchimento','Skinbooster','Enzima','Microagulhamento','Ultrassom','Fios','Laser','Corporal','Estética','Peeling','Outros'];
   document.getElementById('modalProcForm').innerHTML=`
     <div><label class="text-sm font-medium text-gray-700">Nome</label><input id="fp_nome" class="inp mt-1" value="${p?escHtml(p.nome):''}"></div>
     <div><label class="text-sm font-medium text-gray-700">Categoria</label>
       <select id="fp_cat" class="inp mt-1">
         ${cats.map(c=>`<option${(p?.categoria||'Outros')===c?' selected':''}>${c}</option>`).join('')}
       </select></div>
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-3 gap-3">
       <div><label class="text-sm font-medium text-gray-700">Tempo (min)</label><input id="fp_tempo" type="number" class="inp mt-1" value="${p?p.tempo:''}" oninput="atualizarSim()"></div>
       <div><label class="text-sm font-medium text-gray-700">Preço Cobrado (R$)</label><input id="fp_preco" type="number" class="inp mt-1" value="${p?p.preco:''}"></div>
+      <div><label class="text-sm font-medium text-gray-700">${tip('0 = sessão única\n> 0 = pacote com N sessões (ex: ultrassom 4 sessões)')}Sessões/Pacote</label><input id="fp_sessoes" type="number" min="0" class="inp mt-1" value="${p?.sessoes_pacote||0}"></div>
     </div>
     <div>
       <div class="flex justify-between mb-2"><span class="text-sm font-medium text-gray-700">Ficha Técnica de Insumos</span><button onclick="adicionarFichaItem()" class="btn btn-sm btn-ghost">+ Insumo</button></div>
@@ -629,6 +759,7 @@ async function salvarProc(){
   const obj={id,nome,categoria:document.getElementById('fp_cat').value||'Outros',
     tempo:+(document.getElementById('fp_tempo').value)||0,
     preco:+(document.getElementById('fp_preco').value)||0,
+    sessoes_pacote:+(document.getElementById('fp_sessoes')?.value)||0,
     ficha:fichaTemp.filter(f=>f.insumo_id)};
   S.procs=S.procs.filter(p=>p.id!==id); S.procs.push(obj);
   lsSave('procs',S.procs); await cloudUpsert('procedimentos',obj);
@@ -660,7 +791,19 @@ function preencherAtendProc(){
   const custoIns=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?custoUso(ins)*(+f.qtd||0):0); },0);
   const cm=calcCustoMinuto(); const custoTempo=cm*(+p.tempo||0);
   const el=document.getElementById('resumoAtend'); el.classList.remove('hidden');
-  el.innerHTML=`Custo insumos: ${fmtBRL(custoIns)} | Custo tempo: ${fmtBRL(custoTempo)} | Lucro estimado: ${fmtBRL((+p.preco||0)-custoIns-custoTempo)}`;
+  let txt=`Custo insumos: ${fmtBRL(custoIns)} | Custo tempo: ${fmtBRL(custoTempo)} | Lucro estimado: ${fmtBRL((+p.preco||0)-custoIns-custoTempo)}`;
+  if(p.sessoes_pacote>0) txt+=` | 📦 Pacote: ${p.sessoes_pacote} sessões`;
+  el.innerHTML=txt;
+  atualizarSplitInfo();
+}
+function atualizarSplitInfo(){
+  const preco=+document.getElementById('fa_preco')?.value||0;
+  const val1=+document.getElementById('fa_val1')?.value||0;
+  const pag2=document.getElementById('fa_pag2')?.value||'';
+  const show=document.getElementById('fa_val2_show');
+  if(!show) return;
+  if(pag2&&preco>0&&val1>0&&val1<preco){ show.textContent=`2º: ${fmtBRL(preco-val1)}`; show.classList.remove('hidden'); }
+  else show.classList.add('hidden');
 }
 function renderListaAtend(){
   const mes=(document.getElementById('filtroMesAtend')||{value:mesAtual()}).value||mesAtual();
@@ -697,19 +840,28 @@ async function salvarAtend(){
   const data=document.getElementById('fa_data').value;
   const procId=document.getElementById('fa_proc').value;
   const preco=+document.getElementById('fa_preco').value||0;
-  const pagamento=document.getElementById('fa_pag').value;
+  const pag1=document.getElementById('fa_pag').value;
+  const pag2=document.getElementById('fa_pag2')?.value||'';
+  const val1raw=+document.getElementById('fa_val1')?.value||0;
   if(!data||!procId) return showToast('Informe data e procedimento','error');
   const proc=S.procs.find(p=>p.id===procId);
   const ficha=proc&&Array.isArray(proc.ficha)?proc.ficha:[];
   const custoInsumos=ficha.reduce((s,f)=>{ const ins=S.insumos.find(i=>i.id===f.insumo_id); return s+(ins?custoUso(ins)*(+f.qtd||0):0); },0);
   const cm=calcCustoMinuto(); const custoTempo=cm*(+(proc&&proc.tempo)||0);
-  const parcelas=parseInt((pagamento.match(/(\d+)x/)||[0,1])[1])||1;
+  // Montar pagamentos (split ou simples)
+  let pagamentos;
+  if(pag2&&val1raw>0&&val1raw<preco){
+    pagamentos=[{metodo:pag1,valor:val1raw},{metodo:pag2,valor:preco-val1raw}];
+  } else {
+    pagamentos=[{metodo:pag1,valor:preco}];
+  }
   const editId=document.getElementById('modalAtend').dataset.editId||'';
   if(editId){ S.regs=S.regs.filter(r=>r.id!==editId); S.recebimentos=S.recebimentos.filter(r=>r.reg_id!==editId); await cloudDelete('registros',editId); }
   document.getElementById('modalAtend').dataset.editId='';
   const id=editId||uid();
   const obj={id,data,proc_id:procId,proc_nome:proc?.nome||'',paciente_id:null,paciente_nome:'',
-    preco,pagamento,parcelas,custo_insumos:custoInsumos,custo_tempo:custoTempo};
+    preco,pagamento:pagamentos.map(p=>p.metodo).join(' + '),pagamentos:JSON.stringify(pagamentos),
+    parcelas:1,custo_insumos:custoInsumos,custo_tempo:custoTempo};
   // validar estoque
   const alertasEstoque=[];
   for(const f of ficha){
@@ -726,13 +878,18 @@ async function salvarAtend(){
   }
   lsSave('insumos',S.insumos);
   S.regs.push(obj); lsSave('regs',S.regs); await cloudUpsert('registros',obj);
-  const valorParcela=preco/parcelas;
-  for(let p=1;p<=parcelas;p++){
-    const dp=new Date(data); dp.setMonth(dp.getMonth()+(p-1));
-    const rec={id:uid(),reg_id:id,descricao:`${proc?.nome||'Atend.'}${p>1?` (${p}/${parcelas})`:''}`,
-      data_prevista:dp.toISOString().slice(0,10),data_recebido:parcelas===1?data:null,
-      valor:valorParcela,status:parcelas===1?'recebido':'pendente',parcela:p,total_parcelas:parcelas};
-    S.recebimentos.push(rec); await cloudUpsert('recebimentos',rec);
+  // Gerar recebimentos por forma de pagamento
+  for(const pg of pagamentos){
+    const parc=parseInt((pg.metodo.match(/(\d+)x/)||[0,1])[1])||1;
+    const vParcela=pg.valor/parc;
+    for(let p=1;p<=parc;p++){
+      const dp=new Date(data); dp.setMonth(dp.getMonth()+(p-1));
+      const rec={id:uid(),reg_id:id,
+        descricao:`${proc?.nome||'Atend.'}${pagamentos.length>1?` [${pg.metodo}]`:''}${parc>1?` (${p}/${parc})`:''}`,
+        data_prevista:dp.toISOString().slice(0,10),data_recebido:parc===1?data:null,
+        valor:vParcela,status:parc===1?'recebido':'pendente',parcela:p,total_parcelas:parc};
+      S.recebimentos.push(rec); await cloudUpsert('recebimentos',rec);
+    }
   }
   lsSave('recebimentos',S.recebimentos);
   fecharModalAtend(); renderListaAtend(); showToast('Atendimento registrado ✓');
@@ -799,6 +956,7 @@ function atualizarDRE(){
       <div class="dre-total bg-green-50 text-green-700">= Lucro Bruto<span>${fmtBRL(d.lucroBruto)}</span></div>
       <div class="dre-row text-red-500 mt-2"><span class="pl-4">(-) Custos Fixos</span><span>(${fmtBRL(d.totalFixo)})</span></div>
       <div class="dre-row text-red-500"><span class="pl-4">(-) Despesas Variáveis</span><span>(${fmtBRL(d.totalDespesas)})</span></div>
+      ${d.totalFinanciamentos>0?`<div class="dre-row text-red-500"><span class="pl-4">(-) Financiamentos ${tip('Parcelas mensais de equipamentos financiados')}</span><span>(${fmtBRL(d.totalFinanciamentos)})</span></div>`:''}
       <div class="dre-total ${d.resultado>=0?'bg-emerald-50 text-emerald-700':'bg-red-50 text-red-700'}">= Resultado Operacional<span>${fmtBRL(d.resultado)}</span></div>
       ${d.proLabore>0?`
       <div class="dre-row text-purple-600 mt-2"><span class="pl-4">(-) Pró-labore ${tip('Remuneração mensal da Dra — configurável em Configurar → Parâmetros')}</span><span>(${fmtBRL(d.proLabore)})</span></div>
@@ -820,6 +978,23 @@ function renderFluxoCaixa(el){
     <div class="card overflow-x-auto"><table class="w-full text-sm"><thead><tr class="table-header">
       <th class="p-2 text-left">Descrição</th><th class="p-2">Previsão</th><th class="p-2">Valor</th><th class="p-2">Status</th><th class="p-2 no-print">Ação</th>
     </tr></thead><tbody id="tbodyFluxo"></tbody></table></div>
+  </div>
+  <div id="modalAntecip" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+      <h3 class="font-bold text-lg mb-4">⚡ Antecipar Recebimento</h3>
+      <div class="space-y-3">
+        <div class="text-sm text-gray-600">Valor original: <strong id="antecip_orig"></strong></div>
+        <div><label class="text-xs text-gray-500">Taxa de antecipação (%)</label>
+          <input id="antecip_taxa" type="number" step="0.1" class="inp mt-1" value="2.99" oninput="previewAntecip()"></div>
+        <div><label class="text-xs text-gray-500">Nova data de recebimento</label>
+          <input id="antecip_data" type="date" class="inp mt-1" value="${today()}"></div>
+        <div id="antecip_preview" class="bg-rose-50 rounded-xl p-3 text-sm space-y-1"></div>
+      </div>
+      <div class="flex gap-2 mt-4 justify-end">
+        <button onclick="fecharAntecip()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="confirmarAntecip()" class="btn btn-primary">Confirmar</button>
+      </div>
+    </div>
   </div>`;
   atualizarFluxo();
 }
@@ -844,7 +1019,7 @@ function atualizarFluxo(){
       <td class="p-2 text-center text-xs">${r.data_prevista}</td>
       <td class="p-2 text-center font-semibold">${fmtBRL(r.valor)}</td>
       <td class="p-2 text-center"><span class="tag ${r.status==='recebido'?'tag-green':v?'tag-red':'tag-yellow'}">${r.status==='recebido'?'✓ Recebido':v?'⚠ Vencido':'⏳ Pendente'}</span></td>
-      <td class="p-2 text-center no-print">${r.status==='pendente'?`<button onclick="confirmarReceb('${r.id}')" class="btn btn-sm btn-ghost">✓ Confirmar</button>`:''}</td>
+      <td class="p-2 text-center no-print">${r.status==='pendente'?`<button onclick="confirmarReceb('${r.id}')" class="btn btn-sm btn-ghost">✓</button> <button onclick="abrirAntecip('${r.id}')" class="btn btn-sm btn-secondary text-xs">⚡ Antecipar</button>`:''}</td>
     </tr>`;
   }).join('');
 }
@@ -853,6 +1028,37 @@ async function confirmarReceb(id){
   rec.status='recebido'; rec.data_recebido=today();
   lsSave('recebimentos',S.recebimentos); await cloudUpsert('recebimentos',rec);
   atualizarFluxo(); showToast('Recebimento confirmado ✓');
+}
+let _antecipId=null;
+function abrirAntecip(id){
+  _antecipId=id;
+  const rec=S.recebimentos.find(r=>r.id===id); if(!rec) return;
+  document.getElementById('antecip_orig').textContent=fmtBRL(rec.valor);
+  document.getElementById('antecip_taxa').value='2.99';
+  document.getElementById('antecip_data').value=today();
+  previewAntecip();
+  document.getElementById('modalAntecip').classList.remove('hidden');
+}
+function fecharAntecip(){ document.getElementById('modalAntecip').classList.add('hidden'); }
+function previewAntecip(){
+  const rec=S.recebimentos.find(r=>r.id===_antecipId); if(!rec) return;
+  const taxa=+document.getElementById('antecip_taxa').value||0;
+  const taxaVal=rec.valor*(taxa/100);
+  const liquido=rec.valor-taxaVal;
+  document.getElementById('antecip_preview').innerHTML=`
+    <div class="flex justify-between"><span>Valor bruto:</span><span>${fmtBRL(rec.valor)}</span></div>
+    <div class="flex justify-between text-red-500"><span>(-) Taxa ${taxa}%:</span><span>(${fmtBRL(taxaVal)})</span></div>
+    <div class="flex justify-between font-bold text-green-700 border-t pt-1"><span>= Valor líquido:</span><span>${fmtBRL(liquido)}</span></div>`;
+}
+async function confirmarAntecip(){
+  const rec=S.recebimentos.find(r=>r.id===_antecipId); if(!rec) return;
+  const taxa=+document.getElementById('antecip_taxa').value||0;
+  const novaData=document.getElementById('antecip_data').value;
+  rec.valor=rec.valor*(1-taxa/100);
+  rec.data_prevista=novaData; rec.status='recebido'; rec.data_recebido=novaData;
+  rec.descricao=(rec.descricao||'')+` [Antecipado -${taxa}%]`;
+  lsSave('recebimentos',S.recebimentos); await cloudUpsert('recebimentos',rec);
+  fecharAntecip(); atualizarFluxo(); showToast('Recebimento antecipado ✓');
 }
 
 function renderDespesas(el){
@@ -1135,6 +1341,40 @@ function renderConfigurar(){
         <div id="listaCompras"></div>
       </div>
     </div>
+
+    <!-- Financiamentos -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="font-bold text-gray-800">💳 Financiamentos / Parcelamentos</div>
+          <div class="text-xs text-gray-500">Equipamentos financiados — parcelas mensais descontadas da DRE</div>
+        </div>
+        <button onclick="abrirModalFin()" class="btn btn-primary btn-sm no-print">+ Adicionar</button>
+      </div>
+      <div id="listaFinanciamentos"></div>
+    </div>
+  </div>
+
+  <!-- Modal Financiamento -->
+  <div id="modalFin" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+      <h3 class="font-bold text-lg mb-4" id="modalFinTitle">Novo Financiamento</h3>
+      <div class="space-y-3">
+        <div><label class="text-xs text-gray-500">Descrição</label><input id="fn_desc" class="inp mt-1" placeholder="Ex: Ultrassom Microfocado, Laser CO2"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="text-xs text-gray-500">Valor da Parcela (R$)</label><input id="fn_parcela" type="number" step="0.01" class="inp mt-1"></div>
+          <div><label class="text-xs text-gray-500">Total de Parcelas</label><input id="fn_total" type="number" min="1" class="inp mt-1"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="text-xs text-gray-500">Parcelas já pagas</label><input id="fn_pagas" type="number" min="0" class="inp mt-1" value="0"></div>
+          <div><label class="text-xs text-gray-500">Data início</label><input id="fn_inicio" type="date" class="inp mt-1" value="${today()}"></div>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-4 justify-end">
+        <button onclick="fecharModalFin()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="salvarFin()" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal Fixo -->
@@ -1209,6 +1449,11 @@ function renderConfigurar(){
           <div><label class="text-xs text-gray-500">Quantidade</label><input id="fc_qtd" type="number" step="0.01" class="inp mt-1"></div>
           <div><label class="text-xs text-gray-500">Valor Total (R$)</label><input id="fc_valor" type="number" step="0.01" class="inp mt-1"></div>
         </div>
+        <div><label class="text-xs text-gray-500">Parcelamento</label>
+          <select id="fc_parcelas" class="inp mt-1">
+            <option value="1">À vista</option><option value="2">2x</option><option value="3">3x</option>
+            <option value="4">4x</option><option value="6">6x</option><option value="10">10x</option><option value="12">12x</option>
+          </select></div>
       </div>
       <div class="flex gap-2 mt-4 justify-end">
         <button onclick="fecharModalCompra()" class="btn btn-secondary">Cancelar</button>
@@ -1217,7 +1462,7 @@ function renderConfigurar(){
     </div>
   </div>`;
 
-  renderListaFixos(); renderTbodyInsumos(); renderListaCompras();
+  renderListaFixos(); renderTbodyInsumos(); renderListaCompras(); renderListaFinanciamentos();
 }
 
 async function salvarCfg(){
@@ -1272,6 +1517,68 @@ async function deletarFixo(id){
   if(!confirm('Excluir custo fixo?')) return;
   S.fixos=S.fixos.filter(f=>f.id!==id); lsSave('fixos',S.fixos);
   await cloudDelete('custos_fixos',id); renderListaFixos(); showToast('Custo fixo excluído');
+}
+
+let editingFinId=null;
+function abrirModalFin(id=null){
+  editingFinId=id; const f=id?S.financiamentos.find(x=>x.id===id):null;
+  document.getElementById('modalFinTitle').textContent=id?'Editar Financiamento':'Novo Financiamento';
+  document.getElementById('fn_desc').value=f?.descricao||'';
+  document.getElementById('fn_parcela').value=f?.parcela_valor||'';
+  document.getElementById('fn_total').value=f?.parcelas_total||'';
+  document.getElementById('fn_pagas').value=f?.parcelas_pagas||0;
+  document.getElementById('fn_inicio').value=f?.data_inicio||today();
+  document.getElementById('modalFin').classList.remove('hidden');
+}
+function fecharModalFin(){ document.getElementById('modalFin').classList.add('hidden'); }
+async function salvarFin(){
+  const desc=document.getElementById('fn_desc').value.trim(); if(!desc) return showToast('Informe a descrição','error');
+  const id=editingFinId||uid();
+  const obj={id,descricao:desc,
+    parcela_valor:+document.getElementById('fn_parcela').value||0,
+    parcelas_total:+document.getElementById('fn_total').value||1,
+    parcelas_pagas:+document.getElementById('fn_pagas').value||0,
+    data_inicio:document.getElementById('fn_inicio').value};
+  S.financiamentos=S.financiamentos.filter(f=>f.id!==id); S.financiamentos.push(obj);
+  lsSave('financiamentos',S.financiamentos); await cloudUpsert('financiamentos',obj);
+  fecharModalFin(); renderListaFinanciamentos(); showToast('Financiamento salvo ✓');
+}
+async function pagarParcelaFin(id){
+  const f=S.financiamentos.find(x=>x.id===id); if(!f) return;
+  f.parcelas_pagas=Math.min((+f.parcelas_pagas||0)+1,+f.parcelas_total||1);
+  lsSave('financiamentos',S.financiamentos); await cloudUpsert('financiamentos',f);
+  renderListaFinanciamentos(); showToast('Parcela registrada ✓');
+}
+async function deletarFin(id){
+  if(!confirm('Excluir financiamento?')) return;
+  S.financiamentos=S.financiamentos.filter(f=>f.id!==id); lsSave('financiamentos',S.financiamentos);
+  await cloudDelete('financiamentos',id); renderListaFinanciamentos(); showToast('Financiamento excluído');
+}
+function renderListaFinanciamentos(){
+  const el=document.getElementById('listaFinanciamentos'); if(!el) return;
+  if(!S.financiamentos.length){ el.innerHTML='<div class="text-sm text-gray-400 py-3">Nenhum financiamento cadastrado</div>'; return; }
+  el.innerHTML=`<table class="w-full text-sm"><thead><tr class="table-header">
+    <th class="p-2 text-left">Descrição</th><th class="p-2">Parcela</th><th class="p-2">Progresso</th><th class="p-2">Restante</th><th class="p-2 no-print"></th>
+  </tr></thead><tbody>
+  ${S.financiamentos.map(f=>{
+    const pagas=+f.parcelas_pagas||0; const total=+f.parcelas_total||1;
+    const restantes=total-pagas; const pct=Math.min((pagas/total)*100,100);
+    const ativo=restantes>0;
+    return `<tr class="border-b hover:bg-gray-50">
+      <td class="p-2 font-medium">${escHtml(f.descricao)}</td>
+      <td class="p-2 text-center">${fmtBRL(f.parcela_valor)}/mês</td>
+      <td class="p-2 text-center">
+        <div class="text-xs text-gray-500 mb-1">${pagas}/${total}</div>
+        <div class="progress-bar w-24 mx-auto"><div class="progress-fill" style="width:${pct}%;background:${pct>=100?'#10b981':'#e11d48'}"></div></div>
+      </td>
+      <td class="p-2 text-center"><span class="tag ${ativo?'tag-yellow':'tag-green'}">${ativo?`${restantes}x ${fmtBRL((+f.parcela_valor||0)*restantes)}`:'✓ Quitado'}</span></td>
+      <td class="p-2 text-center no-print flex gap-1 justify-center">
+        ${ativo?`<button onclick="pagarParcelaFin('${f.id}')" class="btn btn-sm btn-ghost">✓ Pagar</button>`:''}
+        <button onclick="abrirModalFin('${f.id}')" class="btn btn-sm btn-secondary">✏</button>
+        <button onclick="deletarFin('${f.id}')" class="btn btn-sm btn-danger">🗑</button>
+      </td></tr>`;
+  }).join('')}
+  </tbody></table>`;
 }
 
 function renderTbodyInsumos(){
@@ -1383,11 +1690,22 @@ async function salvarCompra(){
   const insumoId=document.getElementById('fc_insumo').value;
   const qtd=+document.getElementById('fc_qtd').value||0;
   const valor=+document.getElementById('fc_valor').value||0;
+  const parcelas=+document.getElementById('fc_parcelas')?.value||1;
   if(!data||!insumoId||!qtd) return showToast('Preencha todos os campos','error');
   const ins=S.insumos.find(i=>i.id===insumoId);
-  const obj={id:uid(),data,insumo_id:insumoId,insumo_nome:ins?ins.nome:'',qtd,valor_total:valor};
+  const obj={id:uid(),data,insumo_id:insumoId,insumo_nome:ins?ins.nome:'',qtd,valor_total:valor,parcelas};
   S.compras.push(obj); lsSave('compras',S.compras); await cloudUpsert('compras_estoque',obj);
   if(ins){ ins.estoque=(+ins.estoque||0)+qtd; S.insumos=S.insumos.map(i=>i.id===ins.id?ins:i); lsSave('insumos',S.insumos); await cloudUpsert('insumos',ins); }
+  // Gerar despesas para cada parcela
+  const vParcela=valor/parcelas;
+  for(let p=1;p<=parcelas;p++){
+    const dp=new Date(data); dp.setMonth(dp.getMonth()+(p-1));
+    const desp={id:uid(),data:dp.toISOString().slice(0,10),
+      descricao:parcelas>1?`Compra parcelada: ${ins?.nome||''} (${p}/${parcelas})`:`Compra: ${ins?.nome||''}`,
+      categoria:'Compra Estoque',valor:vParcela};
+    S.despesas.push(desp); await cloudUpsert('despesas_variaveis',desp);
+  }
+  lsSave('despesas',S.despesas);
   fecharModalCompra(); renderTbodyInsumos(); renderListaCompras(); showToast('Compra registrada ✓');
 }
 
