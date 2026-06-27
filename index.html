@@ -234,9 +234,25 @@ const DEFAULT_INSUMOS=[
   {nome:'Kit Skin Care Boas Vindas',categoria:'Outros',unidade:'un'},
   {nome:'Certificado + apostila',categoria:'Outros',unidade:'un'},
 ];
+const DEFAULT_FIXOS=[
+  {descricao:'Aluguel / Sala Clínica',valor:0,vencimento_dia:5},
+  {descricao:'Contador',valor:0,vencimento_dia:10},
+  {descricao:'Internet / Telefone',valor:0,vencimento_dia:10},
+  {descricao:'Energia Elétrica',valor:0,vencimento_dia:15},
+  {descricao:'Água',valor:0,vencimento_dia:15},
+  {descricao:'Plataforma / Software Gestão',valor:0,vencimento_dia:null},
+  {descricao:'Seguro Profissional',valor:0,vencimento_dia:null},
+  {descricao:'Anuidade CRM / CFM',valor:0,vencimento_dia:null},
+  {descricao:'Limpeza / Zeladoria',valor:0,vencimento_dia:null},
+  {descricao:'Material de Escritório',valor:0,vencimento_dia:null},
+  {descricao:'Plano de Saúde',valor:0,vencimento_dia:null},
+  {descricao:'Assessoria / Marketing',valor:0,vencimento_dia:null},
+];
+
 function seedDefaultData(){
-  const key=lsKey('seeded_v3'); if(localStorage.getItem(key)) return;
-  // Merge por nome: adiciona apenas itens que ainda não existem (preserva dados customizados)
+  const key=lsKey('seeded_v4'); if(localStorage.getItem(key)) return;
+  // Merge por nome: adiciona apenas o que não existe (preserva dados customizados)
+
   let procChanged=false;
   DEFAULT_PROCS.forEach(p=>{
     const existe=S.procs.some(x=>x.nome.toLowerCase()===p.nome.toLowerCase());
@@ -257,6 +273,17 @@ function seedDefaultData(){
     }
   });
   if(insChanged) lsSave('insumos',S.insumos);
+
+  let fixoChanged=false;
+  DEFAULT_FIXOS.forEach(f=>{
+    const existe=S.fixos.some(x=>x.descricao.toLowerCase()===f.descricao.toLowerCase());
+    if(!existe){
+      const obj={id:uid(),descricao:f.descricao,valor:f.valor,vencimento_dia:f.vencimento_dia};
+      S.fixos.push(obj); cloudUpsert('custos_fixos',obj); fixoChanged=true;
+    }
+  });
+  if(fixoChanged) lsSave('fixos',S.fixos);
+
   localStorage.setItem(key,'1');
 }
 
