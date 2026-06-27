@@ -235,22 +235,28 @@ const DEFAULT_INSUMOS=[
   {nome:'Certificado + apostila',categoria:'Outros',unidade:'un'},
 ];
 function seedDefaultData(){
-  const key=lsKey('seeded_v2'); if(localStorage.getItem(key)) return;
-  if(S.procs.length===0){
-    DEFAULT_PROCS.forEach(p=>{
+  const key=lsKey('seeded_v3'); if(localStorage.getItem(key)) return;
+  // Merge por nome: adiciona apenas itens que ainda não existem (preserva dados customizados)
+  let procChanged=false;
+  DEFAULT_PROCS.forEach(p=>{
+    const existe=S.procs.some(x=>x.nome.toLowerCase()===p.nome.toLowerCase());
+    if(!existe){
       const obj={id:uid(),nome:p.nome,categoria:p.categoria,tempo:0,preco:0,ficha:[],sessoes_pacote:p.sessoes_pacote||0};
-      S.procs.push(obj); cloudUpsert('procedimentos',obj);
-    });
-    lsSave('procs',S.procs);
-  }
-  if(S.insumos.length===0){
-    DEFAULT_INSUMOS.forEach(ins=>{
+      S.procs.push(obj); cloudUpsert('procedimentos',obj); procChanged=true;
+    }
+  });
+  if(procChanged) lsSave('procs',S.procs);
+
+  let insChanged=false;
+  DEFAULT_INSUMOS.forEach(ins=>{
+    const existe=S.insumos.some(x=>x.nome.toLowerCase()===ins.nome.toLowerCase());
+    if(!existe){
       const obj={id:uid(),nome:ins.nome,categoria:ins.categoria,unidade:ins.unidade||'un',
         custo:0,estoque:0,estoque_min:0,qtd_por_embalagem:ins.qtd_por_embalagem||null,unidade_uso:ins.unidade_uso||null};
-      S.insumos.push(obj); cloudUpsert('insumos',obj);
-    });
-    lsSave('insumos',S.insumos);
-  }
+      S.insumos.push(obj); cloudUpsert('insumos',obj); insChanged=true;
+    }
+  });
+  if(insChanged) lsSave('insumos',S.insumos);
   localStorage.setItem(key,'1');
 }
 
